@@ -1,5 +1,6 @@
 import os
 from glob import glob
+import math
 
 import numpy as np
 import cv2 as cv
@@ -13,15 +14,8 @@ from methlib.filter import FreqFilter
 
 # Select 5 Top Peak
 # vector -> Magnitude, Orientation (0-2pi), frequency (distance), harmonic (Peak at 2*frequency)
-def orientation_estimation(block_img):
-    # Drain water level
-    qtile = np.quantile(block_img, [0.996, 0.997 ,0.998, 0.999])
-    binned_img = np.digitize(block_img, bins=qtile)
-    # thres_img = cv.inRange(block_img, np.array([np.]))
-    return binned_img
-    # pass
 
-def draining_peak(block_img, radius_ban=3, max_peak_count=5, mean_radius_ban=(3, 16)):
+def banning_peak(block_img, radius_ban=3, max_peak_count=5, mean_radius_ban=(3, 16)):
     ''' - Finding 5 First peak by searching from maxima -> ban discovered peak -> find new peak
         - Add mean prevention thresholding.
     '''
@@ -36,15 +30,21 @@ def draining_peak(block_img, radius_ban=3, max_peak_count=5, mean_radius_ban=(3,
     for i in range(max_peak_count):
         peak_val = np.max(block_img)
         y_center, x_center = np.where(block_img==peak_val)
-        peak_loc.append([y_center, x_center]) # Append peak location to list
+        for j in range(len(y_center)):
+            cy = y_center[j]
+            cx = x_center[j]
+            peak_loc.append([int(cy), int(cx)]) # Same format as peak_local_max from skimage.feature
         # Ban in radius
         for index in range(len(x_center)):
             ban_circular(block_img, x_center[index], y_center[index], radius_ban, (y_indices, x_indices))
         # plot_all(block_img, cmap='hot')
     return peak_loc
+
 def local_multipeak(block_img, radius_ban=3, max_peak_count=5, mean_radius_ban=(3, 16)):
     block_img = ban_bandpass(block_img, mean_radius_ban=(3, 16))
     return peak_local_max(block_img, 3, num_peaks=10)
+
+
 
 def ban_circular(block_img, centerx, centery, radius_ban, grid=None):
     row, col = block_img.shape
@@ -66,7 +66,7 @@ def ban_bandpass(block_img, radius1, radius2):
     return output
     
 if __name__ == "__main__":
-    path = r"C:\work\image_processing\latent_fingerprint\automatic_segment\data"
+    path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
     for file in glob(os.path.join(path, '*')):
         img = cv.imread(file, 0)
         o_block_size = 64
@@ -82,8 +82,8 @@ if __name__ == "__main__":
         i = 9
         j = 7
         block_img = magnitude[row_map_index_list[i]:row_map_index_list[i]+o_block_size, col_map_index_list[j]:col_map_index_list[j]+o_block_size]
-        print(draining_peak(block_img))
-        print(peak_local_max(block_img, 3, num_peaks=10))
+        dp_loc = banning_peak(block_img)
+        plm_loc = peak_local_max(block_img, 3, num_peaks=10)
         plot_all(block_img, cmap='hot')
         break
         
