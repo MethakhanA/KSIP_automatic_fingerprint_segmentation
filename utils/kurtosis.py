@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import kurtosis
 
-from utils.freqfilter import FreqFilter
+from freqfilter import FreqFilter
 
 # Find Kurtosis
 def fft_kurtosis(magnitude_block, lpf_radius=15, hpf_radius=3):
