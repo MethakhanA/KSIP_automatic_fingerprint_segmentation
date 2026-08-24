@@ -1,7 +1,6 @@
 import math
 import numpy as np
 
-
 class BlockAttribute:
     def __init__(self, block_img, peak_pos):
         self.block_img = block_img
@@ -38,5 +37,10 @@ class BlockAttribute:
         return d_r
     def find_harmonic(self):
         # check if there is anything at double frequency
-        
-        pass
+        peak_y, peak_x = self.peak_pos
+        row, col = self.row, self.col
+        angle = self.angle
+        h_y, h_x = 2*peak_y*np.sin(angle), 2*peak_x*np.cos(angle)
+        if h_y>row or h_x>col:
+            return None
+        return self.block_img[h_y, h_x]
