@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 from skimage.feature import peak_local_max
 
 from blockbase_pipeline import BlockBaseFrameWork
-from methlib.general import plot_all
-from methlib.filter import FreqFilter
+from utils.plot_all import plot_all
+from utils.freqfilter import FreqFilter
 
 # Select 5 Top Peak
 # vector -> Magnitude, Orientation (0-2pi), frequency (distance), harmonic (Peak at 2*frequency)
