@@ -23,9 +23,7 @@ def banning_peak(block_img, radius_ban=3, max_peak_count=5, mean_radius_ban=(3, 
     y_indices, x_indices = np.ogrid[:row, :col] # create coordinate grid
     
     peak_loc = []
-    # plot_all(block_img, cmap='hot')
     x_center, y_center = col//2, row//2
-    # ban_circular(block_img, x_center, y_center, mean_radius_ban, (y_indices, x_indices))
     block_img = ban_bandpass(block_img, mean_radius_ban[0], mean_radius_ban[1])
     for i in range(max_peak_count):
         peak_val = np.max(block_img)
@@ -37,14 +35,11 @@ def banning_peak(block_img, radius_ban=3, max_peak_count=5, mean_radius_ban=(3, 
         # Ban in radius
         for index in range(len(x_center)):
             ban_circular(block_img, x_center[index], y_center[index], radius_ban, (y_indices, x_indices))
-        # plot_all(block_img, cmap='hot')
     return peak_loc
 
 def local_multipeak(block_img, radius_ban=3, max_peak_count=5, mean_radius_ban=(3, 16)):
     block_img = ban_bandpass(block_img, mean_radius_ban=(3, 16))
     return peak_local_max(block_img, 3, num_peaks=10)
-
-
 
 def ban_circular(block_img, centerx, centery, radius_ban, grid=None):
     row, col = block_img.shape
@@ -71,21 +66,21 @@ if __name__ == "__main__":
         img = cv.imread(file, 0)
         o_block_size = 64
         no_block_size = 32
-        BBF = BlockBaseFrameWork(img, overlap_block_size=o_block_size, nonoverlap_block_size=no_block_size, zeromean=True, window_func='Gaussian')
+        BBF = BlockBaseFrameWork(img, overlap_block_size=o_block_size, nonoverlap_block_size=no_block_size, zeromean=True, window_func='Gaussian', blur_edge=True)
         
         row_map_index_list, col_map_index_list = BBF.row_map_block_index_list, BBF.col_map_block_index_list
         
         BBF.stft()
         magnitude = BBF.getMagnitude()
-        # for i in range(18):
-        #     for j in range(18):
-        i = 9
-        j = 7
-        block_img = magnitude[row_map_index_list[i]:row_map_index_list[i]+o_block_size, col_map_index_list[j]:col_map_index_list[j]+o_block_size]
-        dp_loc = banning_peak(block_img)
-        plm_loc = peak_local_max(block_img, 3, num_peaks=10)
-        plot_all(block_img, cmap='hot')
-        break
+        img = BBF.get_img()
+        plot_all(img)
+        # i = 9
+        # j = 7
+        # block_img = magnitude[row_map_index_list[i]:row_map_index_list[i]+o_block_size, col_map_index_list[j]:col_map_index_list[j]+o_block_size]
+        # dp_loc = banning_peak(block_img)
+        # plm_loc = peak_local_max(block_img, 3, num_peaks=10)
+        # plot_all(block_img, cmap='hot')
+        # break
         
         # orient_field = BBF.apply_func_map(magnitude, orientation_estimation)
         # plt.imshow(orient_field, 'hot')

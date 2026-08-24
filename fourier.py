@@ -51,6 +51,9 @@ class Fourier2D:
             winfunc_horz = gaussian(self.__img_width, std_horz).reshape((1, -1))
             self.__window = winfunc_vert * winfunc_horz.T
             output_img = input_img * self.__window.T
+        else:
+            window_func = self.__window_func(input_img) # function that return image size window function
+            output_img = input_img*window_func
         return output_img
             
     def fft(self):
@@ -73,6 +76,10 @@ class Fourier2D:
         '''
         inverse transform and shift the center back
         '''
+        # For inverse window function
+        if not self.__window_func is None:
+            self.__inv_window = 1/self.__window
+            self.__fft_magnitude = self.__fft_magnitude*self.__inv_window
         # Invert shift Magnitude plot
         ifft_magnitude = fftpack.ifftshift(self.__fft_magnitude)
         

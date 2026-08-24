@@ -15,15 +15,16 @@ import matplotlib.pyplot as plt
 # from methlib.general import plot_all, normalize_range
 # from methlib.intensity_transform import log_transform
 from fourier import Fourier2D
-
+from blur_edge import blurEdge
 
 class BlockBaseFrameWork:
-    def __init__(self, img=None, mask=None, overlap_block_size=192, nonoverlap_block_size=16, zeromean=False, window_func=None):
+    def __init__(self, img=None, overlap_block_size:int=192, nonoverlap_block_size:int=16, zeromean:bool=False, window_func=None, blur_edge=False, blur_size=21, erode_size=21):
         """Initialize the block-based framework for image processing."""
         self.__img = img
-        self.__mask = mask
         self.__zeromean = zeromean
         self.__window_func = window_func
+        self.__blur_edge = blur_edge
+        self.__blur_edge_size = (blur_size, erode_size)
         
         # Initialize map holders
         self.__spa_map_img = None
@@ -56,7 +57,6 @@ class BlockBaseFrameWork:
             nonoverlap_block_size (int): The small block size (e.g., 16)
         """
         img = self.__img
-        mask = self.__mask
         
         self.__nonoverlap_blocksize = nonoverlap_block_size
         self.__overlap_blocksize = overlap_block_size
@@ -76,15 +76,19 @@ class BlockBaseFrameWork:
             "constant",
             constant_values=127,
         )
-        
-        self.__fp_pad = [pad_top, pad_bottom, pad_left, pad_right]
-        if not mask is None:
-            self.__mask = np.pad(
-                mask,
+        # blur mask
+        if self.__blur_edge:
+            blur_size, erode_size = self.__blur_edge_size
+            blur_mask = np.ones_like(img)*255
+            blur_mask = np.pad(
+                img,
                 ((pad_top, pad_bottom), (pad_left, pad_right)),
                 "constant",
                 constant_values=0,
             )
+            self.__img = blurEdge(self.__img, blur_mask, blur_size, erode_size)
+        self.__fp_pad = [pad_top, pad_bottom, pad_left, pad_right]
+
    
     def __unpad(self, input_img):
         """Unpad image to its original dimensions."""
