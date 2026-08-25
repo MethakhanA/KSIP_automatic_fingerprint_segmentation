@@ -12,13 +12,5 @@ def TV_preprocessing(img):
     cartoon_img = denoise_tv_chambolle(input_img_float, weight=40)
     texture_img = input_img_float - cartoon_img.astype(np.float64)
     texture_img = normalize(texture_img).astype(np.uint8)
-    # plt.figure()
-    # plt.imshow(img, cmap="gray")
-    # plt.figure()
-    # plt.imshow(cartoon_img, cmap="gray")
-    # plt.figure()
-    # plt.imshow(texture_img, cmap="gray")
-    # plt.show()
-    
     return texture_img
     

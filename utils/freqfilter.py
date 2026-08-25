@@ -61,8 +61,11 @@ class FreqFilter:
             self.__filter = np.exp(-((self.__distance_map**2-band_center**2) / ((self.__distance_map*band_width)+eps))**2)
         elif f_type == "Butterworth":
             self.__filter = 1/(1 + ((self.__distance_map**2-band_center**2) / ((self.__distance_map*band_width)+eps))**(2*n_order))
-    def getBPF(self, band_center, band_width, f_type="Ideal", n_order=2):
+    def getBPF(self, band_center=None, band_width=None, f_type="Ideal", n_order=2, radius1=None, radius2=None):
         self.__distanceMap()
+        if band_center is None or band_width is None:
+            band_width = radius2-radius1
+            band_center = radius1+(band_width/2)
         self.__BPF(band_center, band_width, f_type, n_order)
         # bandpass_filter = self.getBPF(band_center, band_width, f_type, n_order)
         # self.__filter = 1 - bandpass_filter

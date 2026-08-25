@@ -38,8 +38,8 @@ def banning_peak(block_img, radius_ban=3, max_peak_count=5, mean_radius_ban=(3, 
     return peak_loc
 
 def local_multipeak(block_img, radius_ban=3, max_peak_count=5, mean_radius_ban=(3, 16)):
-    block_img = ban_bandpass(block_img, mean_radius_ban=(3, 16))
-    return peak_local_max(block_img, 3, num_peaks=10)
+    block_img = ban_bandpass(block_img, mean_radius_ban[0], mean_radius_ban[1])
+    return peak_local_max(block_img, radius_ban, num_peaks=max_peak_count)
 
 def ban_circular(block_img, centerx, centery, radius_ban, grid=None):
     row, col = block_img.shape
@@ -56,10 +56,11 @@ def ban_bandpass(block_img, radius1, radius2):
     filter = FreqFilter(block_img.shape)
     bandwidth = radius2-radius1
     bandcenter = radius1+(bandwidth/2)
-    BPF = filter.getBPF(bandcenter, bandwidth)
+    BPF = filter.getBPF(radius1=radius1, radius2=radius2)
     output = block_img*BPF
     return output
-    
+
+
 if __name__ == "__main__":
     path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
     for file in glob(os.path.join(path, '*')):

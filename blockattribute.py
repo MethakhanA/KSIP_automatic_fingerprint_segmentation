@@ -40,7 +40,7 @@ class BlockAttribute:
         peak_y, peak_x = self.peak_pos
         row, col = self.row, self.col
         angle = self.angle
-        h_y, h_x = 2*peak_y*np.sin(angle), 2*peak_x*np.cos(angle)
+        h_y, h_x = np.floor(2*peak_y*np.sin(angle)), np.floor(2*peak_x*np.cos(angle))
         if h_y>row or h_x>col:
             return None
         return self.block_img[h_y, h_x]
