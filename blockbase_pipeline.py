@@ -251,12 +251,13 @@ class BlockBaseFrameWork:
         self.__freq_map_img = self.__unpad(self.__freq_map_img)
         self.__output_img = self.__unpad(output_img)
     
-    def apply_func_map(self, map_img, func, *args, output_is_img=True, output_vector=None, activation_map=None):
+    def apply_func_map(self, map_img, func, *args, output_is_img=True, output_vector=None, activation_map=None, custom_row_index=None, custom_col_index=None, iteration_size=1):
         o_blocksize = self.__overlap_blocksize
         rows = len(self.row_map_block_index_list)
         cols = len(self.col_map_block_index_list)
+        # If don't specify then Activate Every fucking thing.
         if activation_map is None:
-            activation_map = np.full((rows, cols), True, dtype=bool) # Activate Every fucking thing
+            activation_map = np.full((rows, cols), True, dtype=bool)
 
         # Incase you don't want the output to be picture, but whatever vector you so desire
         if output_is_img:
@@ -264,16 +265,36 @@ class BlockBaseFrameWork:
         else:
             output_img = output_vector
         
+        row_block_index_list = self.row_map_block_index_list
+        col_block_index_list = self.col_map_block_index_list
+        it_size = o_blocksize
+        if not custom_row_index is None:
+            row_output_block_index_list = custom_row_index
+            col_output_block_index_list = custom_col_index
+            opt_it_size = iteration_size
+        else:
+            row_output_block_index_list = row_block_index_list
+            col_output_block_index_list = col_block_index_list
+            opt_it_size = it_size
         for row_index in range(rows):
-            start_map_row = self.row_map_block_index_list[row_index]
-            stop_map_row = start_map_row + o_blocksize
+            # Map index
+            start_map_row = row_block_index_list[row_index]
+            stop_map_row = start_map_row + it_size
+            # Output index, Done this for shorter computation in for loop
+            o_start_map_row = row_output_block_index_list[row_index]
+            o_stop_map_row = o_start_map_row+opt_it_size
             for col_index in range(cols):
-                start_map_col = self.col_map_block_index_list[col_index]
-                stop_map_col = start_map_col + o_blocksize
                 if activation_map[row_index][col_index]==True:
+                    # Map index
+                    start_map_col = col_block_index_list[col_index]
+                    stop_map_col = start_map_col + it_size
+                    # Output index
+                    o_start_map_col = col_output_block_index_list[col_index]
+                    o_stop_map_col = o_start_map_col+opt_it_size
+                    
                     patch = map_img[start_map_row:stop_map_row, start_map_col:stop_map_col]
                     output = func(patch, *args)
-                    output_img[start_map_row:stop_map_row, start_map_col:stop_map_col] = output
+                    output_img[o_start_map_row:o_stop_map_row, o_start_map_col:o_stop_map_col] = output
     
         return output_img    
         
