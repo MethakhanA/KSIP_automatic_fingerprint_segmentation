@@ -268,7 +268,10 @@ class BlockBaseFrameWork:
         row_block_index_list = self.row_map_block_index_list
         col_block_index_list = self.col_map_block_index_list
         it_size = o_blocksize
-        if not custom_row_index is None:
+        if not output_is_img:
+            if custom_row_index is None:
+                custom_row_index = range(rows)
+                custom_col_index = range(cols)
             row_output_block_index_list = custom_row_index
             col_output_block_index_list = custom_col_index
             opt_it_size = iteration_size

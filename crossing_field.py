@@ -22,6 +22,8 @@ Crossing point field framework
 
 
 '''
+
+
 def ban_bandpass_gaussian(block_img, radius1, radius2, filtersize=3):
     filter = FreqFilter(block_img.shape)
     BPF = filter.getBPF(radius1=radius1, radius2=radius2)
@@ -31,14 +33,21 @@ def ban_bandpass_gaussian(block_img, radius1, radius2, filtersize=3):
     return output
     
 def find_Attribute_multi(block_img):
-    peak_pos = local_multipeak(block_img, 3, 1)[0]
-    # peak_pos = banning_peak(block_img, 3, 1)[0]
-    BA = BlockAttribute(block_img, peak_pos)
-    direction = BA.find_direction()
-    magnitude = BA.find_magnitude()
-    frequency = BA.find_distance()
-    harmonic = BA.find_harmonic()
-    return direction, magnitude, frequency, harmonic
+    peak_pos = local_multipeak(block_img, 3, 1)
+    # peak_pos = banning_peak(block_img, 3, 1)
+    if peak_pos is False:
+        return 0.0 ,0.0, 0.0, 0.0
+    output_vector = np.zeros((len(peak_pos), 4))
+    for index in range(len(peak_pos)):
+        BA = BlockAttribute(block_img, peak_pos[index])
+        direction = BA.find_direction()
+        magnitude = BA.find_magnitude()
+        frequency = BA.find_distance()
+        harmonic = BA.find_harmonic()
+        output_vector[index] = np.array([direction, magnitude, frequency, harmonic])
+    return output_vector
+
+
 
 if __name__ == "__main__":
     # path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
@@ -59,9 +68,9 @@ if __name__ == "__main__":
         magnitude = BBF.apply_func_map(magnitude, ban_bandpass_gaussian, bp_r[0], bp_r[1], gss_f_size)
         # create kurtosis map
         ks_map = np.zeros((len(row_map_index), len(col_map_index)))
-        ks_map = BBF.apply_func_map(magnitude, fft_kurtosis, output_is_img=False, output_vector=ks_map, custom_row_index=range(len(row_map_index)), custom_col_index=range(len(col_map_index)))
-        
-        plot_all([pad_img, ks_map], cmap=['gray', 'hot'])
-        # # create 1.
-        # orientation_map = np.zeros((len(row_map_index), len(col_map_index), 4))
-        # orientation_map = BBF.apply_func_map()
+        ks_map = BBF.apply_func_map(magnitude, fft_kurtosis, output_is_img=False, output_vector=ks_map)
+        # plot_all([pad_img, ks_map], cmap=['gray', 'hot'])
+        # create Orientation map
+        orientation_map = np.zeros((len(row_map_index), len(col_map_index), 4))
+        orientation_map = BBF.apply_func_map(magnitude, find_Attribute_multi, output_is_img=False, output_vector=orientation_map)
+        plot_all([orientation_map[:, :, i] for i in range(4)])
