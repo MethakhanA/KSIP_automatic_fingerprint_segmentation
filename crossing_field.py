@@ -12,7 +12,7 @@ from utils.kurtosis import fft_kurtosis
 
 from blockbase_pipeline import BlockBaseFrameWork
 from orientation_estimation import banning_peak, local_multipeak
-from blockattribute import BlockAttribute
+from blockattribute import find_Attribute_multi
 '''
 Crossing point field framework
 - from BBF generate STFT map
@@ -32,20 +32,6 @@ def ban_bandpass_gaussian(block_img, radius1, radius2, filtersize=3):
     output = block_img*BPF
     return output
     
-def find_Attribute_multi(block_img):
-    peak_pos = local_multipeak(block_img, 3, 1)
-    # peak_pos = banning_peak(block_img, 3, 1)
-    if peak_pos is False:
-        return 0.0 ,0.0, 0.0, 0.0
-    output_vector = np.zeros((len(peak_pos), 4))
-    for index in range(len(peak_pos)):
-        BA = BlockAttribute(block_img, peak_pos[index])
-        direction = BA.find_direction()
-        magnitude = BA.find_magnitude()
-        frequency = BA.find_distance()
-        harmonic = BA.find_harmonic()
-        output_vector[index] = np.array([direction, magnitude, frequency, harmonic])
-    return output_vector
 
 
 
@@ -73,4 +59,3 @@ if __name__ == "__main__":
         # create Orientation map
         orientation_map = np.zeros((len(row_map_index), len(col_map_index), 4))
         orientation_map = BBF.apply_func_map(magnitude, find_Attribute_multi, output_is_img=False, output_vector=orientation_map)
-        plot_all([orientation_map[:, :, i] for i in range(4)])
