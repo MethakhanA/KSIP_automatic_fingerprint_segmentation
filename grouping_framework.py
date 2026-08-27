@@ -48,6 +48,7 @@ def map_clustering(vector_map, falloff_threshold=0.9, kernel=None, connectivity=
                                [1, 1, 1],
                                [0, 1, 0]], dtype=bool)
     row, col = kernel.shape
+    c_row, c_col = row//2+1, col//2+1
     if row%2==0 or col%2==0:
         raise ValueError("Kernel must have odd shape for it to have center!")
     peak_pos = local_multipeak(vector_map, radius_ban=3, max_peak_count=10)
@@ -57,6 +58,12 @@ def map_clustering(vector_map, falloff_threshold=0.9, kernel=None, connectivity=
         # Initiate row and column list
         r_idx_lst = [r_idx]
         c_idx_lst = [c_idx]
+        # iteratively find row and col index until not fit in falloff_threshold
         while True:
-            # iteratively find row and col index until not fit in falloff_threshold
+            
+            # Put kernel into position
+            for r_k_idx in range(row):
+                for c_k_idx in range(col):
+                    if kernel[r_k_idx][c_k_idx]:
+                        
             pass
