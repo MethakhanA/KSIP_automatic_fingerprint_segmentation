@@ -55,7 +55,8 @@ if __name__ == "__main__":
         # create kurtosis map
         ks_map = np.zeros((len(row_map_index), len(col_map_index)))
         ks_map = BBF.apply_func_map(magnitude, fft_kurtosis, output_is_img=False, output_vector=ks_map)
-        # plot_all([pad_img, ks_map], cmap=['gray', 'hot'])
+        plot_all([pad_img, ks_map], cmap=['gray', 'hot'])
         # create Orientation map
         orientation_map = np.zeros((len(row_map_index), len(col_map_index), 4))
         orientation_map = BBF.apply_func_map(magnitude, find_Attribute_multi, output_is_img=False, output_vector=orientation_map)
+        plot_all([orientation_map[:, :, i] for i in range(4)])

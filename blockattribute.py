@@ -47,7 +47,7 @@ class BlockAttribute:
             return None
         return self.block_img[h_y, h_x]
 def find_Attribute_multi(block_img):
-    peak_pos = local_multipeak(block_img, 3, 10)
+    peak_pos = local_multipeak(block_img, 3, 1)
     # peak_pos = banning_peak(block_img, 3, 1)
     if peak_pos is False:
         return 0.0 ,0.0, 0.0, 0.0
