@@ -74,7 +74,7 @@ class BlockBaseFrameWork:
             img,
             ((pad_top, pad_bottom), (pad_left, pad_right)),
             "constant",
-            constant_values=127,
+            constant_values=np.mean(img),
         )
         # blur mask
         if self.__blur_edge:
