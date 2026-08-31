@@ -2,7 +2,7 @@ import numpy as np
 from blockbase_pipeline import BlockBaseFrameWork
 from  orientation_estimation import local_multipeak
 from blockattribute import find_Attribute_multi
-
+from utils.concave_hull import concave_hull
 class BlockGroup:
     def __init__(self, row_index_list, col_index_list, block_attribute_list=None):
         self.rw_idx_lst = row_index_list
@@ -35,9 +35,15 @@ class BlockGroup:
         return self.group_id[(row_index, col_index)]
     def get_member_list(self):
         return [id for id in self.group_id]
-    
+    def get_concave_hull(self):
+        points = self.get_member_list()
+        hull_points = concave_hull(points)
+        if hull_points is None:
+            return points
+        return hull_points
 def map_clustering(vector_map, falloff_threshold=0.9, kernel=None, connectivity=8):
     "Iterative n-connectivity kernel block clustering"
+    display_map = np.zeros_like(vector_map)
     
     if kernel is None:
         if connectivity==8:
@@ -50,22 +56,23 @@ def map_clustering(vector_map, falloff_threshold=0.9, kernel=None, connectivity=
                                [0, 1, 0]], dtype=float)
     map_row, map_col = vector_map.shape
     k_row, k_col = kernel.shape
-    k_row, k_col = k_row-1, k_col-1
-    ctr_row, ctr_col = k_row//2, k_col//2
     if k_row%2==0 or k_col%2==0:
         raise ValueError("Kernel must have odd shape for it to have center!")
+    k_row, k_col = k_row-1, k_col-1
+    ctr_row, ctr_col = k_row//2, k_col//2
     peak_pos = local_multipeak(vector_map, radius_ban=3, max_peak_count=10)
     BG_list = [] # block group 1
-    for pos in peak_pos:
+    for pos in tqdm(peak_pos):
         r_idx, c_idx = pos
         p_val = vector_map[r_idx, c_idx] # Peak Value
         # Initiate row and column list
         BG = BlockGroup([r_idx], [c_idx])
         # iteratively find row and col index until not fit in falloff_threshold
         while True:
-            for ctr_k_pos in BG.get_member_list():
+            for ctr_k_pos in BG.get_concave_hull():
                 temp_kernel = kernel.copy()
                 ctr_k_row, ctr_k_col = ctr_k_pos
+                display_map[ctr_k_row, ctr_k_col] = 1
                 start_row = ctr_k_row-ctr_row
                 stop_row = start_row+k_row
                 start_col = ctr_k_col-ctr_col
@@ -84,7 +91,8 @@ def map_clustering(vector_map, falloff_threshold=0.9, kernel=None, connectivity=
                     stop_col = map_col-1
                     temp_kernel = temp_kernel[:, :stop_col-start_col]
                 # Now time it with the real
-                output = temp_kernel*vector_map[start_row:stop_row, start_col:stop_col]
+                output = temp_kernel*vector_map[start_row:stop_row+1, start_col:stop_col+1]
+                print(output)
                 # Check condition
                 output[output<(falloff_threshold*vector_map[ctr_k_row, ctr_k_col])]=0
                 output[output>0]=1
@@ -97,7 +105,11 @@ def map_clustering(vector_map, falloff_threshold=0.9, kernel=None, connectivity=
                             if not ((r_map_k_lst[i], c_map_k_lst[j]) in BG.get_member_list()):
                                 # Then Add this to the Block group
                                 BG.add_member(r_map_k_lst[i], c_map_k_lst[j])
+                                
                 # Add condition for code to exit. (No more fall off)
+            print(np.sum(output))
+            plot_all(display_map)
+            # break
             if np.sum(output)<=1:
                 break
         BG_list.append(BG)
@@ -105,3 +117,36 @@ def map_clustering(vector_map, falloff_threshold=0.9, kernel=None, connectivity=
 
 if __name__ == "__main__":
     # Need Testing and debug
+    # path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
+    import os
+    import cv2 as cv
+    from tqdm import tqdm
+    from glob import glob
+    from crossing_field import ban_bandpass_gaussian
+    from utils.plot_all import plot_all
+    from utils.kurtosis import fft_kurtosis
+    out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data_TV"
+    for file in tqdm(glob(os.path.join(out_path, '*'))):
+        img = cv.imread(file, 0) # This is a Texture TV image.
+        o_block_size = 64
+        no_block_size = 16
+        bp_r = (3, 16)
+        gss_f_size = 3
+        
+        BBF = BlockBaseFrameWork(img, overlap_block_size=o_block_size, nonoverlap_block_size=no_block_size, zeromean=True, window_func='Gaussian', blur_edge=True)
+        row_map_index, col_map_index = BBF.row_map_block_index_list, BBF.col_map_block_index_list
+        pad_img = BBF.get_img()
+        BBF.stft()
+        magnitude = BBF.getMagnitude().astype(np.float32)
+        # Apply Gaussian Bandpass
+        magnitude = BBF.apply_func_map(magnitude, ban_bandpass_gaussian, bp_r[0], bp_r[1], gss_f_size)
+        # create kurtosis map
+        ks_map = np.zeros((len(row_map_index), len(col_map_index)))
+        ks_map = BBF.apply_func_map(magnitude, fft_kurtosis, output_is_img=False, output_vector=ks_map)
+        # plot_all([pad_img, ks_map], cmap=['gray', 'hot'])
+        # # create Orientation map
+        # orientation_map = np.zeros((len(row_map_index), len(col_map_index), 4))
+        # orientation_map = BBF.apply_func_map(magnitude, find_Attribute_multi, output_is_img=False, output_vector=orientation_map)
+        # plot_all([orientation_map[:, :, i] for i in range(4)])
+        group_list = map_clustering(ks_map, falloff_threshold=0.1)
+        print(group_list)
