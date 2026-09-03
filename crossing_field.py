@@ -31,7 +31,8 @@ def ban_bandpass_gaussian(block_img, radius1, radius2, filtersize=3):
     BPF = cv.GaussianBlur(BPF, (filtersize, filtersize), sigmaX=0)
     output = block_img*BPF
     return output
-    
+
+# write a crossing field framework
 
 
 
@@ -57,6 +58,7 @@ if __name__ == "__main__":
         ks_map = BBF.apply_func_map(magnitude, fft_kurtosis, output_is_img=False, output_vector=ks_map)
         plot_all([pad_img, ks_map], cmap=['gray', 'hot'])
         # create Orientation map
-        orientation_map = np.zeros((len(row_map_index), len(col_map_index), 4))
+        orientation_map = np.empty((len(row_map_index), len(col_map_index)), dtype=object)
         orientation_map = BBF.apply_func_map(magnitude, find_Attribute_multi, output_is_img=False, output_vector=orientation_map)
         plot_all([orientation_map[:, :, i] for i in range(4)])
+        

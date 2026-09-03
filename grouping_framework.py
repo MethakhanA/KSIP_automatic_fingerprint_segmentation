@@ -1,7 +1,11 @@
 import numpy as np
+import cv2 as cv
+from tqdm import tqdm
+
 from blockbase_pipeline import BlockBaseFrameWork
 from  orientation_estimation import local_multipeak
 from blockattribute import find_Attribute_multi
+
 from utils.concave_hull import concave_hull
 class BlockGroup:
     def __init__(self, row_index_list, col_index_list, block_attribute_list=None):
@@ -128,38 +132,7 @@ def map_clustering(vector_map, falloff_threshold=0.9, kernel=None, connectivity=
     # plot_all([vector_map, display_map])
     return BG_list, display_map
 
-if __name__ == "__main__":
-    # Need Testing and debug
-    # path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
-    import os
-    import cv2 as cv
-    from tqdm import tqdm
-    from glob import glob
-    from crossing_field import ban_bandpass_gaussian
-    from utils.plot_all import plot_all
-    from utils.kurtosis import fft_kurtosis
-    out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data_TV"
-    for file in tqdm(glob(os.path.join(out_path, '*'))):
-        img = cv.imread(file, 0) # This is a Texture TV image.
-        o_block_size = 64
-        no_block_size = 16
-        bp_r = (3, 16)
-        gss_f_size = 3
-        
-        BBF = BlockBaseFrameWork(img, overlap_block_size=o_block_size, nonoverlap_block_size=no_block_size, zeromean=True, window_func='Gaussian', blur_edge=True)
-        row_map_index, col_map_index = BBF.row_map_block_index_list, BBF.col_map_block_index_list
-        pad_img = BBF.get_img()
-        BBF.stft()
-        magnitude = BBF.getMagnitude().astype(np.float32)
-        # Apply Gaussian Bandpass
-        magnitude = BBF.apply_func_map(magnitude, ban_bandpass_gaussian, bp_r[0], bp_r[1], gss_f_size)
-        # create kurtosis map
-        ks_map = np.zeros((len(row_map_index), len(col_map_index)))
-        ks_map = BBF.apply_func_map(magnitude, fft_kurtosis, output_is_img=False, output_vector=ks_map)
-        # plot_all([pad_img, ks_map], cmap=['gray', 'hot'])
-        # # create Orientation map
-        # orientation_map = np.zeros((len(row_map_index), len(col_map_index), 4))
-        # orientation_map = BBF.apply_func_map(magnitude, find_Attribute_multi, output_is_img=False, output_vector=orientation_map)
-        # plot_all([orientation_map[:, :, i] for i in range(4)])
-        group_list = map_clustering(ks_map, falloff_threshold=0.1)
-        print(group_list)
+# if __name__ == "__main__":
+#     # Need Testing and debug
+#     # path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
+#     pass
