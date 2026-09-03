@@ -87,12 +87,12 @@ class BlockBaseFrameWork:
                 constant_values=0,
             )
             self.__img = blurEdge(self.__img, blur_mask, blur_size, erode_size)
-        self.__fp_pad = [pad_top, pad_bottom, pad_left, pad_right]
+        self.fp_pad = [pad_top, pad_bottom, pad_left, pad_right]
 
    
     def __unpad(self, input_img):
         """Unpad image to its original dimensions."""
-        top, bottom, left, right = self.__fp_pad
+        top, bottom, left, right = self.fp_pad
         h, w = input_img.shape
         return input_img[top : h - bottom, left : w - right]
    
@@ -268,6 +268,7 @@ class BlockBaseFrameWork:
         row_block_index_list = self.row_map_block_index_list
         col_block_index_list = self.col_map_block_index_list
         it_size = o_blocksize
+        
         if not output_is_img:
             if custom_row_index is None:
                 custom_row_index = range(rows)
@@ -294,11 +295,14 @@ class BlockBaseFrameWork:
                     # Output index
                     o_start_map_col = col_output_block_index_list[col_index]
                     o_stop_map_col = o_start_map_col+opt_it_size
-                    
                     patch = map_img[start_map_row:stop_map_row, start_map_col:stop_map_col]
-                    output = func(patch, *args)
-                    output_img[o_start_map_row:o_stop_map_row, o_start_map_col:o_stop_map_col] = output
-    
+                    if output_is_img:
+                        output = func(patch, *args)
+                        output_img[o_start_map_row:o_stop_map_row, o_start_map_col:o_stop_map_col] = output
+                    else:
+                        # Note that instead of allocating np.zeroes. Use the np.empty instead so you can Shove whatever the fuck inside the position.
+                        output = func(patch, *args)
+                        output_img[o_start_map_row, o_start_map_col] = output
         return output_img    
         
     def get_img(self):

@@ -45,9 +45,8 @@ class BlockGroup:
         if hull_points is None:
             return points
         return hull_points
-def map_clustering(vector_map, falloff_threshold=0.9, kernel=None, connectivity=8):
+def map_clustering(vector_map, falloff_threshold=0.9, kernel=None, connectivity=8, custom_peak_pos=None):
     "Iterative n-connectivity kernel block clustering"
-    display_map = np.zeros_like(vector_map)
     if kernel is None:
         if connectivity==8:
             kernel = np.array([[1, 1, 1],
@@ -62,9 +61,14 @@ def map_clustering(vector_map, falloff_threshold=0.9, kernel=None, connectivity=
     if k_row%2==0 or k_col%2==0:
         raise ValueError("Kernel must have odd shape for it to have center!")
     ctr_k_row, ctr_k_col = k_row//2, k_col//2
-    peak_pos = local_multipeak(vector_map, radius_ban=3, max_peak_count=1)
-    BG_list = [] # block group 1
+    if not custom_peak_pos is None:
+        peak_pos = local_multipeak(vector_map, radius_ban=2, max_peak_count=10)
+    else:
+        peak_pos = custom_peak_pos # put your custom peak pos here
+    BG_list = [] # block group 
+    display_map_list = []
     for pos in tqdm(peak_pos):
+        display_map = np.zeros_like(vector_map)
         r_idx, c_idx = pos
         p_val = vector_map[r_idx, c_idx]# Peak Value
         # Initiate row and column list
@@ -125,14 +129,26 @@ def map_clustering(vector_map, falloff_threshold=0.9, kernel=None, connectivity=
             temp = BG.get_member_list()
             set_delta = set(delta)
             delta = [item for item in temp if item not in set_delta]
+            # plot_all([vector_map, display_map]) # Uncomment ts
             if not change:
                 # There is no change
                 break
         BG_list.append(BG)
-    # plot_all([vector_map, display_map])
-    return BG_list, display_map
+        display_map_list.append(display_map)
+    return BG_list, display_map_list
 
-# if __name__ == "__main__":
-#     # Need Testing and debug
-#     # path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
-#     pass
+
+# Example
+if __name__ == "__main__":
+    from utils.freqfilter import FreqFilter
+    from utils.plot_all import plot_all
+    # Create example
+    size = 32
+    radius1, radius2 = 3, 16
+    filter = FreqFilter((size, size))
+    BPF = filter.getBPF(radius1=radius1, radius2=radius2)
+    BPF = BPF.astype(np.float32)
+    BPF = cv.GaussianBlur(BPF, (3, 3), sigmaX=0)
+    # plot_all(BPF)
+    BG_List, display_map_list = map_clustering(BPF)
+
