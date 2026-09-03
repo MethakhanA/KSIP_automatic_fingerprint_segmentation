@@ -44,7 +44,6 @@ class BlockGroup:
 def map_clustering(vector_map, falloff_threshold=0.9, kernel=None, connectivity=8):
     "Iterative n-connectivity kernel block clustering"
     display_map = np.zeros_like(vector_map)
-    
     if kernel is None:
         if connectivity==8:
             kernel = np.array([[1, 1, 1],
@@ -58,62 +57,76 @@ def map_clustering(vector_map, falloff_threshold=0.9, kernel=None, connectivity=
     k_row, k_col = kernel.shape
     if k_row%2==0 or k_col%2==0:
         raise ValueError("Kernel must have odd shape for it to have center!")
-    k_row, k_col = k_row-1, k_col-1
-    ctr_row, ctr_col = k_row//2, k_col//2
-    peak_pos = local_multipeak(vector_map, radius_ban=3, max_peak_count=10)
+    ctr_k_row, ctr_k_col = k_row//2, k_col//2
+    peak_pos = local_multipeak(vector_map, radius_ban=3, max_peak_count=1)
     BG_list = [] # block group 1
     for pos in tqdm(peak_pos):
         r_idx, c_idx = pos
-        p_val = vector_map[r_idx, c_idx] # Peak Value
+        p_val = vector_map[r_idx, c_idx]# Peak Value
         # Initiate row and column list
         BG = BlockGroup([r_idx], [c_idx])
+        
         # iteratively find row and col index until not fit in falloff_threshold
+        index = 0
+        delta = BG.get_member_list()
         while True:
-            for ctr_k_pos in BG.get_concave_hull():
+            change = False
+            for ctr_pos in delta:
                 temp_kernel = kernel.copy()
-                ctr_k_row, ctr_k_col = ctr_k_pos
-                display_map[ctr_k_row, ctr_k_col] = 1
-                start_row = ctr_k_row-ctr_row
-                stop_row = start_row+k_row
-                start_col = ctr_k_col-ctr_col
-                stop_col= start_col+k_col
-                # If the kernel is out of bound
-                if start_row<0:
-                    start_row = 0
-                    temp_kernel = temp_kernel[k_row-(stop_row-start_row):, :]
-                if start_col<0:
-                    start_col = 0
-                    temp_kernel = temp_kernel[:, k_col-(stop_col-start_col):]
-                if stop_row>=map_row:
-                    stop_row = map_row-1
-                    temp_kernel = temp_kernel[:stop_row-start_row, :]
-                if stop_col>=map_col:
-                    stop_col = map_col-1
-                    temp_kernel = temp_kernel[:, :stop_col-start_col]
-                # Now time it with the real
-                output = temp_kernel*vector_map[start_row:stop_row+1, start_col:stop_col+1]
-                print(output)
-                # Check condition
-                output[output<(falloff_threshold*vector_map[ctr_k_row, ctr_k_col])]=0
-                output[output>0]=1
-                output = output
-                r_map_k_lst = range(start_row, stop_row)
-                c_map_k_lst = range(start_col, stop_col)
-                for i in range(len(r_map_k_lst)):
-                    for j in range(len(c_map_k_lst)):
-                        if output[i, j]==1:
-                            if not ((r_map_k_lst[i], c_map_k_lst[j]) in BG.get_member_list()):
-                                # Then Add this to the Block group
-                                BG.add_member(r_map_k_lst[i], c_map_k_lst[j])
-                                
-                # Add condition for code to exit. (No more fall off)
-            print(np.sum(output))
-            plot_all(display_map)
-            # break
-            if np.sum(output)<=1:
+                # center of kernel in map coordinate
+                ctr_row, ctr_col = ctr_pos
+                display_map[ctr_row, ctr_col] = 1
+                start_row, stop_row =  ctr_row-ctr_k_row, ctr_row+ctr_k_row
+                start_col, stop_col = ctr_col-ctr_k_col, ctr_col+ctr_k_col
+                if start_row < 0:
+                    rl_start_row = 0
+                    temp_kernel = temp_kernel[(rl_start_row-start_row):, :]
+                else:
+                    rl_start_row = start_row
+                if stop_row >= map_row:
+                    rl_stop_row = map_row-1
+                    temp_kernel = temp_kernel[:-(stop_row-rl_stop_row), :]
+                else:
+                    rl_stop_row = stop_row
+                if start_col < 0:
+                    rl_start_col = 0
+                    temp_kernel = temp_kernel[:, (rl_start_col-start_col):]
+                else:
+                    rl_start_col = start_col
+                if stop_col >= map_col:
+                    rl_stop_col = map_col-1
+                    temp_kernel = temp_kernel[:, :-(stop_col-rl_stop_col)]
+                else:
+                    rl_stop_col = stop_col
+                
+                output = temp_kernel*vector_map[rl_start_row:rl_stop_row+1, rl_start_col:rl_stop_col+1]
+                
+                thres = falloff_threshold*vector_map[ctr_row, ctr_col]
+                    
+                _, output = cv.threshold(output, thres, 1, cv.THRESH_BINARY)
+
+                rel_ctr_row = ctr_row - rl_start_row
+                rel_ctr_col = ctr_col - rl_start_col
+                output[rel_ctr_row, rel_ctr_col] = 0
+                rel_pos = np.where(output>0)
+                if len(rel_pos[0])==0:
+                    # Do nothing, skip to next loop
+                    continue
+                for i in range(len(rel_pos[0])):
+                    rl_row, rl_col = rl_start_row+rel_pos[0][i], rl_start_col+rel_pos[1][i]
+                    if not (rl_row, rl_col) in BG.get_member_list():
+                        BG.add_member(rl_row, rl_col)
+                        if not change:
+                            change = True
+            temp = BG.get_member_list()
+            set_delta = set(delta)
+            delta = [item for item in temp if item not in set_delta]
+            if not change:
+                # There is no change
                 break
         BG_list.append(BG)
-    return BG_list
+    # plot_all([vector_map, display_map])
+    return BG_list, display_map
 
 if __name__ == "__main__":
     # Need Testing and debug
