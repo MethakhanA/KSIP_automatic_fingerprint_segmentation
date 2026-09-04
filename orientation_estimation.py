@@ -39,9 +39,9 @@ def banning_peak(block_img, radius_ban=3, max_peak_count=5, mean_radius_ban=(3, 
 
 def local_multipeak(block_img, radius_ban=3, max_peak_count=5, mean_radius_ban=(3, 16)):
     block_img = ban_bandpass(block_img, mean_radius_ban[0], mean_radius_ban[1])
-    peak_pos = peak_local_max(block_img, radius_ban, num_peaks=max_peak_count)
+    peak_pos = peak_local_max(block_img, radius_ban, num_peaks=max_peak_count, exclude_border=False)
     if len(peak_pos)==0:
-        return False
+        return None
     return peak_pos
 
 def ban_circular(block_img, centerx, centery, radius_ban, grid=None):

@@ -2,8 +2,10 @@ import numpy as np
 import cv2 as cv
 from tqdm import tqdm
 
+# from skimage.feature import peak_local_max
+
 from blockbase_pipeline import BlockBaseFrameWork
-from  orientation_estimation import local_multipeak
+from  orientation_estimation import local_multipeak, banning_peak
 from blockattribute import find_Attribute_multi
 
 from utils.concave_hull import concave_hull
@@ -61,10 +63,12 @@ def map_clustering(vector_map, falloff_threshold=0.9, kernel=None, connectivity=
     if k_row%2==0 or k_col%2==0:
         raise ValueError("Kernel must have odd shape for it to have center!")
     ctr_k_row, ctr_k_col = k_row//2, k_col//2
-    if not custom_peak_pos is None:
+    if custom_peak_pos is None:
         peak_pos = local_multipeak(vector_map, radius_ban=2, max_peak_count=10)
     else:
         peak_pos = custom_peak_pos # put your custom peak pos here
+    if peak_pos is None:
+        return None, None
     BG_list = [] # block group 
     display_map_list = []
     for pos in tqdm(peak_pos):

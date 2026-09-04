@@ -38,9 +38,9 @@ def ban_bandpass_gaussian(block_img, radius1, radius2, filtersize=3):
 
 
 if __name__ == "__main__":
-    # path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
+    out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
     # out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data_TV"
-    out_path = r"C:\work\image_processing\latent_fingerprint\automatic_segment\data"
+    # out_path = r"C:\work\image_processing\latent_fingerprint\automatic_segment\data"
     for file in tqdm(glob(os.path.join(out_path, '*'))):
         img = cv.imread(file, 0) # This is a Texture TV image.
         o_block_size = 64
@@ -54,24 +54,27 @@ if __name__ == "__main__":
         BBF.stft()
         magnitude = BBF.getMagnitude().astype(np.float32)
         index = 15
-        plot_all(magnitude[row_map_index[index]:row_map_index[index]+o_block_size, col_map_index[index]:col_map_index[index]+o_block_size], cmap='hot', title_list=["Original Magnitude"])
+        # plot_all(magnitude[row_map_index[index]:row_map_index[index]+o_block_size, col_map_index[index]:col_map_index[index]+o_block_size], cmap='hot', title_list=["Original Magnitude"])
         # Apply Gaussian Bandpass
         magnitude = BBF.apply_func_map(magnitude, ban_bandpass_gaussian, bp_r[0], bp_r[1], gss_f_size)
-        plot_all(magnitude[row_map_index[index]:row_map_index[index]+o_block_size, col_map_index[index]:col_map_index[index]+o_block_size], cmap='hot', title_list=["Gaussian Bandpass Magnitude"])
+        # plot_all(magnitude[row_map_index[index]:row_map_index[index]+o_block_size, col_map_index[index]:col_map_index[index]+o_block_size], cmap='hot', title_list=["Gaussian Bandpass Magnitude"])
         # create kurtosis map
         ks_map = np.zeros((len(row_map_index), len(col_map_index)))
         ks_map = BBF.apply_func_map(magnitude, fft_kurtosis, output_is_img=False, output_vector=ks_map)
         block_pad = np.array(BBF.fp_pad)//no_block_size
         ks_map = ks_map[block_pad[0]:-block_pad[1], block_pad[2]:-block_pad[3]]
         pad_img = pad_img[BBF.fp_pad[0]:-BBF.fp_pad[1], BBF.fp_pad[2]:-BBF.fp_pad[3]]
-        plot_all([pad_img, ks_map], cmap=['gray', 'hot']) # Show kurtosis map
+        # plot_all([pad_img, ks_map], cmap=['gray', 'hot']) # Show kurtosis map
         cluster_list, cluster_map_list = map_clustering(ks_map, 0.9)
         cluster_map_list.insert(0, ks_map)
 
-        plot_all([item for item in cluster_map_list], cmap='hot')
-        # break
+        # plot_all([item for item in cluster_map_list], cmap='hot')
+        # # break
         
-        # # create Orientation map
+        # create Orientation map
         orientation_map = np.empty((len(row_map_index), len(col_map_index)), dtype=object)
         orientation_map = BBF.apply_func_map(magnitude, find_Attribute_multi, 10, False, output_is_img=False, output_vector=orientation_map)
         
+        # plot_all([orientation_map[:, :, i] for i in range(2, 6)])
+        # print(orientation_map)
+        break
