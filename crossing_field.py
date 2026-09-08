@@ -13,7 +13,7 @@ from utils.kurtosis import fft_kurtosis
 from blockbase_pipeline import BlockBaseFrameWork
 from orientation_estimation import banning_peak, local_multipeak
 from blockattribute import find_Attribute_multi
-from grouping_framework import map_clustering
+from grouping_framework import map_clustering_watershed
 '''
 Crossing point field framework
 - from BBF generate STFT map
@@ -34,8 +34,7 @@ def ban_bandpass_gaussian(block_img, radius1, radius2, filtersize=3):
     return output
 
 # write a crossing field framework
-
-
+# from watershed_clustering_test import cluster_pixels
 
 if __name__ == "__main__":
     out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
@@ -64,17 +63,19 @@ if __name__ == "__main__":
         block_pad = np.array(BBF.fp_pad)//no_block_size
         ks_map = ks_map[block_pad[0]:-block_pad[1], block_pad[2]:-block_pad[3]]
         pad_img = pad_img[BBF.fp_pad[0]:-BBF.fp_pad[1], BBF.fp_pad[2]:-BBF.fp_pad[3]]
+        # plot_all([pad_img, ks_map], cmap=['gray', 'hot'])
+        map_clustering_watershed(ks_map)
         # plot_all([pad_img, ks_map], cmap=['gray', 'hot']) # Show kurtosis map
-        cluster_list, cluster_map_list = map_clustering(ks_map, 0.9)
-        cluster_map_list.insert(0, ks_map)
+        # cluster_list, cluster_map_list = map_clustering(ks_map, 0.9)
+        # cluster_map_list.insert(0, ks_map)
 
         # plot_all([item for item in cluster_map_list], cmap='hot')
         # # break
         
         # create Orientation map
-        orientation_map = np.empty((len(row_map_index), len(col_map_index)), dtype=object)
-        orientation_map = BBF.apply_func_map(magnitude, find_Attribute_multi, 10, False, output_is_img=False, output_vector=orientation_map)
+        # orientation_map = np.empty((len(row_map_index), len(col_map_index)), dtype=object)
+        # orientation_map = BBF.apply_func_map(magnitude, find_Attribute_multi, 10, False, output_is_img=False, output_vector=orientation_map)
         
         # plot_all([orientation_map[:, :, i] for i in range(2, 6)])
         # print(orientation_map)
-        break
+        # break
