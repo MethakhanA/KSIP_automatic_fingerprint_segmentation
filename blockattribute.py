@@ -1,7 +1,7 @@
 import math
 import numpy as np
 from orientation_estimation import local_multipeak
-
+from utils.check_angle_rad import check_angle_rad
 
 class BlockAttribute:
     def __init__(self, block_img, peak_pos):
@@ -46,9 +46,7 @@ class BlockAttribute:
         if h_y>=row or h_x>=col:
             return None
         return self.block_img[h_y, h_x]
-def check_angle_rad(angle1, angle2, tol=0.8):
-    diff = math.atan2(math.sin(angle1 - angle2), math.cos(angle1 - angle2))
-    return abs(diff) <= tol
+
 def find_Attribute_multi(block_img, peak_count=1, filter_double_peak=True, tol=0.8):
     # peak_pos = local_multipeak(block_img, 3, peak_count)
     peak_pos = local_multipeak(block_img, 3, peak_count)

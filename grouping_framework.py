@@ -10,7 +10,10 @@ from  orientation_estimation import local_multipeak, banning_peak
 from blockattribute import find_Attribute_multi
 
 from utils.concave_hull import concave_hull
+from utils.check_angle_rad import check_angle_rad
+# ---- Visualization Hook ----
 from utils.plot_all import plot_all
+# ----
 class BlockGroup:
     def __init__(self, row_index_list, col_index_list, block_attribute_list=None):
         self.rw_idx_lst = row_index_list
@@ -60,6 +63,7 @@ class BlockGroup:
             return True
         else:
             return False            
+
 def map_clustering_n_iterative(vector_map, falloff_threshold=0.9, kernel=None, connectivity=8, custom_peak_pos=None):
     "Iterative n-connectivity kernel block clustering"
     if kernel is None:
@@ -85,12 +89,13 @@ def map_clustering_n_iterative(vector_map, falloff_threshold=0.9, kernel=None, c
     BG_list = [] # block group 
     display_map_list = []
     for pos in tqdm(peak_pos):
-        display_map = np.zeros_like(vector_map)
+        # ---- Visualization tag
+        # display_map = np.zeros_like(vector_map)
+        # ------------------
         r_idx, c_idx = pos
-        p_val = vector_map[r_idx, c_idx]# Peak Value
         # Initiate row and column list
         BG = BlockGroup([r_idx], [c_idx])
-        
+        BG.set_max_pos((r_idx, c_idx)) # set max pos
         # iteratively find row and col index until not fit in falloff_threshold
         index = 0
         delta = BG.get_member_list()
@@ -158,18 +163,18 @@ def map_clustering_n_iterative(vector_map, falloff_threshold=0.9, kernel=None, c
         # display_map_list.append(display_map)
     return BG_list
 
-def map_clustering_watershed(image, connectivity=8, merge_threshold=0.5):
+def map_clustering_watershed(vector_map, connectivity=8, merge_threshold=0.5):
     """Clusters pixels hierarchically from peaks downward (monotonically non-increasing),
 
     excluding 0-intensity background, with per-step visualization.
 
-    :param image: 2D numpy array (grayscale image)
+    :param vector_map: 2D numpy array (grayscale image)
     :param connectivity: 4 or 8 for neighbor checking
     :param merge_threshold: Fraction of overlap required to merge two
     clusters
     :return: List of clusters, each containing a list of (y, x) tuples
     """
-    rows, cols = image.shape
+    rows, cols = vector_map.shape
 
     if connectivity == 4:
         # 4 connectivity
@@ -196,8 +201,8 @@ def map_clustering_watershed(image, connectivity=8, merge_threshold=0.5):
         return neighbors
 
     # 1. Filter out zero-intensity background and sort coordinates descending by intensity
-    y_coords, x_coords = np.nonzero(image)
-    intensities = image[y_coords, x_coords]
+    y_coords, x_coords = np.nonzero(vector_map)
+    intensities = vector_map[y_coords, x_coords]
 
     sort_idx = np.argsort(intensities)[::-1]
     sorted_pixels = list(zip(y_coords[sort_idx], x_coords[sort_idx]))
@@ -215,7 +220,7 @@ def map_clustering_watershed(image, connectivity=8, merge_threshold=0.5):
 
         while queue:
             curr_y, curr_x = queue.popleft()
-            curr_intensity = image[curr_y, curr_x]
+            curr_intensity = vector_map[curr_y, curr_x]
 
             # --- VISUALIZATION HOOK ---
             # vis_array = np.zeros_like(image)
@@ -226,7 +231,7 @@ def map_clustering_watershed(image, connectivity=8, merge_threshold=0.5):
             # --------------------------
 
             for ny, nx in get_neighbors(curr_y, curr_x):
-                n_intensity = image[ny, nx]
+                n_intensity = vector_map[ny, nx]
 
                 # Exclude background pixels and already included pixels
                 if n_intensity == 0 or (ny, nx) in current_cluster_set:
@@ -265,6 +270,9 @@ def map_clustering_watershed(image, connectivity=8, merge_threshold=0.5):
         result[i].set_max_pos(peak_pos_list[i])
     return result
 # Example
+def map_clustering_tol(vector_map, tol=0.8):
+    # Threshold into n parts
+    pass
 if __name__ == "__main__":
     from utils.freqfilter import FreqFilter
     from utils.plot_all import plot_all
