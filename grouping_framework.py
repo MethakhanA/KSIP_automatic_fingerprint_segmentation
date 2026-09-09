@@ -10,23 +10,26 @@ from  orientation_estimation import local_multipeak, banning_peak
 from blockattribute import find_Attribute_multi
 
 from utils.concave_hull import concave_hull
+from utils.plot_all import plot_all
 class BlockGroup:
     def __init__(self, row_index_list, col_index_list, block_attribute_list=None):
         self.rw_idx_lst = row_index_list
         self.cl_idx_lst = col_index_list
         self.blk_attrib_lst = block_attribute_list
+        self.max_pos = None
         self.__gen_id()
     def __gen_id(self):
         group_id = {}
         blk_attrib_lst = self.blk_attrib_lst
         attrib_idx = 0
-        for r_idx in self.rw_idx_lst:
-            for c_idx in self.cl_idx_lst:
-                if blk_attrib_lst is None:
-                    group_id[(r_idx, c_idx)] = None
-                else:
-                    group_id[(r_idx, c_idx)] = blk_attrib_lst[attrib_idx]
-                attrib_idx += 1
+        for idx in range(len(self.rw_idx_lst)):
+            r_idx = self.rw_idx_lst[idx]
+            c_idx = self.cl_idx_lst[idx]
+            if blk_attrib_lst is None:
+                group_id[(r_idx, c_idx)] = None
+            else:
+                group_id[(r_idx, c_idx)] = blk_attrib_lst[attrib_idx]
+            attrib_idx += 1
         self.group_id = group_id
     def add_member(self, row_index, col_index, attribute=None):
         self.group_id[(row_index, col_index)] = attribute
@@ -48,6 +51,15 @@ class BlockGroup:
         if hull_points is None:
             return points
         return hull_points
+    def set_max_pos(self, max_pos:tuple, insert=False):
+        if max_pos in self.group_id:
+            self.max_pos = max_pos
+            return True
+        if insert:
+            self.add_member(max_pos[0], max_pos[1])
+            return True
+        else:
+            return False            
 def map_clustering_n_iterative(vector_map, falloff_threshold=0.9, kernel=None, connectivity=8, custom_peak_pos=None):
     "Iterative n-connectivity kernel block clustering"
     if kernel is None:
@@ -88,7 +100,9 @@ def map_clustering_n_iterative(vector_map, falloff_threshold=0.9, kernel=None, c
                 temp_kernel = kernel.copy()
                 # center of kernel in map coordinate
                 ctr_row, ctr_col = ctr_pos
-                display_map[ctr_row, ctr_col] = 1
+                # ---- Visualization tag
+                # display_map[ctr_row, ctr_col] = 1
+                # ----------------------
                 start_row, stop_row =  ctr_row-ctr_k_row, ctr_row+ctr_k_row
                 start_col, stop_col = ctr_col-ctr_k_col, ctr_col+ctr_k_col
                 if start_row < 0:
@@ -134,13 +148,15 @@ def map_clustering_n_iterative(vector_map, falloff_threshold=0.9, kernel=None, c
             temp = BG.get_member_list()
             set_delta = set(delta)
             delta = [item for item in temp if item not in set_delta]
+            #--------- Visualization tag
             # plot_all([vector_map, display_map]) # Uncomment ts
+            #------------------------
             if not change:
                 # There is no change
                 break
         BG_list.append(BG)
-        display_map_list.append(display_map)
-    return BG_list, display_map_list
+        # display_map_list.append(display_map)
+    return BG_list
 
 def map_clustering_watershed(image, connectivity=8, merge_threshold=0.5):
     """Clusters pixels hierarchically from peaks downward (monotonically non-increasing),
@@ -201,13 +217,13 @@ def map_clustering_watershed(image, connectivity=8, merge_threshold=0.5):
             curr_y, curr_x = queue.popleft()
             curr_intensity = image[curr_y, curr_x]
 
-            # # --- VISUALIZATION HOOK ---
+            # --- VISUALIZATION HOOK ---
             # vis_array = np.zeros_like(image)
             # for cy, cx in current_cluster_set:
             #     vis_array[cy, cx] = image[cy, cx]
 
             # plot_all(vis_array)
-            # # --------------------------
+            # --------------------------
 
             for ny, nx in get_neighbors(curr_y, curr_x):
                 n_intensity = image[ny, nx]
@@ -221,12 +237,14 @@ def map_clustering_watershed(image, connectivity=8, merge_threshold=0.5):
                     current_cluster_set.add((ny, nx))
                     visited_by_any.add((ny, nx))
                     queue.append((ny, nx))
-
-        clusters.append(current_cluster_set)
+        # print((peak_y, peak_x))
+        # plot_all(vis_array)
+        clusters.append([current_cluster_set, (peak_y, peak_x)])
 
     # 4. Merge Similar Clusters
     merged_clusters = []
-    for cluster in clusters:
+    peak_pos_list = []
+    for cluster, peak_pos in clusters:
         merged = False
         for i, existing_cluster in enumerate(merged_clusters):
             intersection = cluster.intersection(existing_cluster)
@@ -239,9 +257,13 @@ def map_clustering_watershed(image, connectivity=8, merge_threshold=0.5):
 
         if not merged:
             merged_clusters.append(cluster)
+            peak_pos_list.append(peak_pos)
     # return [list(c) for c in merged_clusters]
     # return [BlockGroup([item[0] for item in list(c)], [item[1] for item in list(c)]) for c in merged_clusters]
-    return [BlockGroup(*zip(*c)) for c in merged_clusters]
+    result = [BlockGroup(*zip(*c)) for c in merged_clusters]
+    for i in range(len(result)):
+        result[i].set_max_pos(peak_pos_list[i])
+    return result
 # Example
 if __name__ == "__main__":
     from utils.freqfilter import FreqFilter

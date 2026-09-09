@@ -49,7 +49,7 @@ class BlockAttribute:
 def check_angle_rad(angle1, angle2, tol=0.8):
     diff = math.atan2(math.sin(angle1 - angle2), math.cos(angle1 - angle2))
     return abs(diff) <= tol
-def find_Attribute_multi(block_img, peak_count=10, filter_double_peak=True, tol=0.8):
+def find_Attribute_multi(block_img, peak_count=1, filter_double_peak=True, tol=0.8):
     # peak_pos = local_multipeak(block_img, 3, peak_count)
     peak_pos = local_multipeak(block_img, 3, peak_count)
     if peak_pos is None:
