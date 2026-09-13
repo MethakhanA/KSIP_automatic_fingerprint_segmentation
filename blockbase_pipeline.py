@@ -233,8 +233,9 @@ class BlockBaseFrameWork:
                 
                 f_patch = self.__freq_map_img[start_map_row:stop_map_row, start_map_col:stop_map_col]
                 ph_patch = self.__phase_map_img[start_map_row:stop_map_row, start_map_col:stop_map_col]
+
                 
-                FFT = Fourier2D(f_patch, frequency=True)
+                FFT = Fourier2D(f_patch, frequency=True, window_func=self.__window_func)
                 FFT.setPhase(ph_patch)
                 FFT.ifft()
                 
@@ -247,7 +248,6 @@ class BlockBaseFrameWork:
         
         # Unpad all images
         self.__img = self.__unpad(self.__img)
-        self.__mask = self.__unpad(self.__mask)
         self.__freq_map_img = self.__unpad(self.__freq_map_img)
         self.__output_img = self.__unpad(output_img)
     
@@ -308,8 +308,8 @@ class BlockBaseFrameWork:
     def get_img(self):
         return self.__img
     
-    def get_mask(self):
-        return self.__mask
+    # def get_mask(self):
+    #     return self.__mask
     
     def getSpatial(self):
         return self.__spa_map_img
@@ -339,18 +339,21 @@ class BlockBaseFrameWork:
         self.__freq_map_img = freq_map
 
 
-# if __name__ == "__main__":
-#     img_path = r"D:\work\image_processing\Latent_fingerprint\SFP_latent_fingerprint_enh\segmentation\Latent_fingerprint_segmentation_KSIP2026\data\sd302h_original_500ppi\00002302_2B_X_L01_BP_S04_500PPI_8BPC_1CH_LP05-1_1.png"
-#     mask_path = r"D:\work\image_processing\Latent_fingerprint\SFP_latent_fingerprint_enh\latent_fingerprint_enhancement-master\data\masks_machine\rtp2013_11_1_T_2.png"
-#     img = cv.imread(img_path, 0)
-#     mask = cv.imread(mask_path, 0)
-#     BBF = BlockBaseFrameWork(img, mask, 64, 16, False)
-#     BBF.stft()
-#     magnitude = BBF.getMagnitude()
-#     kurtosis = BBF.apply_func_map(magnitude, log_transform)
-#     BBF.setMagnitude(kurtosis)
-#     BBF.istft()
-#     output = BBF.get_output_img()
-#     output = normalize_range(output, (np.min(output), np.max(output)), (0, 255))
+if __name__ == "__main__":
+    from utils.plot_all import plot_all
+    img_path = r"D:\work\image_processing\Latent_fingerprint\SFP_latent_fingerprint_enh\segmentation\Latent_fingerprint_segmentation_KSIP2026\data\sd302h_original_500ppi\00002302_2B_X_L01_BP_S04_500PPI_8BPC_1CH_LP05-1_1.png"
+    img_path = r"C:\work\image_processing\latent_fingerprint\automatic_segment\data\00002313_1C_L_L02_BP_S10_500PPI_8BPC_1CH_LP03-1_1.png"
+    # mask_path = r"D:\work\image_processing\Latent_fingerprint\SFP_latent_fingerprint_enh\latent_fingerprint_enhancement-master\data\masks_machine\rtp2013_11_1_T_2.png"
+    img = cv.imread(img_path, 0)
+    # mask = cv.imread(mask_path, 0)
+    BBF = BlockBaseFrameWork(img, overlap_block_size=64, nonoverlap_block_size=16, zeromean=True, window_func="Gaussian")
+    BBF.stft()
+    magnitude = BBF.getMagnitude()
+    # kurtosis = BBF.apply_func_map(magnitude, log_transform)
+    # BBF.setMagnitude(kurtosis)
+    BBF.istft()
+    output = BBF.get_output_img()
+    # output = normalize_range(output, (np.min(output), np.max(output)), (0, 255))
 
-#     plot_all([img, output])
+    plot_all([img, output], title_list=["Before", "after"])
+    plot_all([img, img-output], title_list=["Original", "Delta"])

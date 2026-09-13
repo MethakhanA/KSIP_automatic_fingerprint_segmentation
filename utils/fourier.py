@@ -26,6 +26,7 @@ class Fourier2D:
         self.__img_width = input_img.shape[1]
         if frequency:
             self.setMagnitude(input_img)
+            self.__windowing(input_img)
     def __zeroMean(self):
         '''
         Make the picture be zero mean
@@ -77,9 +78,8 @@ class Fourier2D:
         inverse transform and shift the center back
         '''
         # For inverse window function
-        if not self.__window_func is None:
-            self.__inv_window = 1/self.__window
-            self.__fft_magnitude = self.__fft_magnitude*self.__inv_window
+            # self.__fft_magnitude = self.__fft_magnitude*self.__inv_window
+            
         # Invert shift Magnitude plot
         ifft_magnitude = fftpack.ifftshift(self.__fft_magnitude)
         
@@ -92,6 +92,9 @@ class Fourier2D:
         output_complex = fftpack.ifft2(ifft_complex)
         # Get image data from the real part(Imag is a false part)
         self.__output_img = output_complex.real
+        if not self.__window_func is None:
+            self.__inv_window = 1/self.__window
+            self.__output_img = self.__output_img*self.__inv_window
     def getOutputImg(self):
         '''
         Get the image out of the objects
