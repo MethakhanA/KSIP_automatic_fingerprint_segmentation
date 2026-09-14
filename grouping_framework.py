@@ -4,6 +4,7 @@ import cv2 as cv
 from tqdm import tqdm
 
 # from skimage.feature import peak_local_max
+from sklearn.cluster import DBSCAN
 
 from blockbase_pipeline import BlockBaseFrameWork
 from  orientation_estimation import local_multipeak, banning_peak
@@ -222,13 +223,13 @@ def map_clustering_watershed(vector_map, connectivity=8, merge_threshold=0.5):
             curr_y, curr_x = queue.popleft()
             curr_intensity = vector_map[curr_y, curr_x]
 
-            # --- VISUALIZATION HOOK ---
-            # vis_array = np.zeros_like(image)
+            # # --- VISUALIZATION HOOK ---
+            # vis_array = np.zeros_like(vector_map)
             # for cy, cx in current_cluster_set:
-            #     vis_array[cy, cx] = image[cy, cx]
+            #     vis_array[cy, cx] = vector_map[cy, cx]
 
             # plot_all(vis_array)
-            # --------------------------
+            # # --------------------------
 
             for ny, nx in get_neighbors(curr_y, curr_x):
                 n_intensity = vector_map[ny, nx]
@@ -245,6 +246,7 @@ def map_clustering_watershed(vector_map, connectivity=8, merge_threshold=0.5):
         # print((peak_y, peak_x))
         # plot_all(vis_array)
         clusters.append([current_cluster_set, (peak_y, peak_x)])
+        # Add Breaking Condition
 
     # 4. Merge Similar Clusters
     merged_clusters = []
@@ -270,13 +272,25 @@ def map_clustering_watershed(vector_map, connectivity=8, merge_threshold=0.5):
         result[i].set_max_pos(peak_pos_list[i])
     return result
 # Example
-def map_clustering_tol(vector_map, tol=0.8):
-    # Threshold into n parts
-    pass
+def map_clustering_tol(vector_map, tol=0.8, min_samp=2):
+    dbscan = DBSCAN(eps=tol, min_samples=min_samp)
+    labels = dbscan.fit_predict(dbscan)
+    cluster_ids = [label for label in np.unique(labels) if label != -1]
+    masks = {c_id: (labels == c_id) for c_id in cluster_ids}
+    return masks
+    # pass
+def map_clustering_threshold(vector_map, parts=4, max_cluster=10):
+    max_val, min_val = np.max(vector_map), np.min(vector_map)
+    bins = np.linspace(0.0, 1.0, parts + 1) # into n parts
+    lower = bins[:-1, None, None]
+    upper = bins[1:, None, None]
+    masks = (vector_map >= lower) & (vector_map < upper)
+    return masks
+    
 if __name__ == "__main__":
     from utils.freqfilter import FreqFilter
     from utils.plot_all import plot_all
-    # Create example
+    ##---- Clustering Example
     size = 32
     radius1, radius2 = 3, 16
     filter = FreqFilter((size, size))
@@ -284,6 +298,9 @@ if __name__ == "__main__":
     BPF = BPF.astype(np.float32)
     BPF = cv.GaussianBlur(BPF, (3, 3), sigmaX=0)
     # plot_all(BPF)
-    dat_list = map_clustering_watershed(BPF)
-
-    # print(dat_list[0].get_member_list())
+    # dat_list = map_clustering_watershed(BPF)
+    mask = map_clustering_threshold(BPF)
+    plot_all([mask[i] for i in range(len(mask))])
+    # ---- ---- ----
+    
+    ##---- 

@@ -47,8 +47,10 @@ class BlockAttribute:
             return None
         return self.block_img[h_y, h_x]
 
-def find_Attribute_multi(block_img, peak_count=1, filter_double_peak=True, tol=0.8):
+def find_Attribute_multi(block_img, peak_count=5, filter_double_peak=True, tol=0.8):
     # peak_pos = local_multipeak(block_img, 3, peak_count)
+    if filter_double_peak:
+        peak_count = peak_count*2 # double peak
     peak_pos = local_multipeak(block_img, 3, peak_count)
     if peak_pos is None:
         return None

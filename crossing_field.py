@@ -226,9 +226,9 @@ def exclude_boundary(img):
 if __name__ == "__main__":
     # from crossingfield_test import find_orientation_crossings, visualize_crossings
     from grouping_framework import BlockGroup
-    # out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
+    out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
     # out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data_TV"
-    out_path = r"C:\work\image_processing\latent_fingerprint\automatic_segment\data"
+    # out_path = r"C:\work\image_processing\latent_fingerprint\automatic_segment\data"
     # ---- Define Params ----
     o_block_size = 64
     no_block_size = 16

@@ -342,7 +342,7 @@ class BlockBaseFrameWork:
 if __name__ == "__main__":
     from utils.plot_all import plot_all
     img_path = r"D:\work\image_processing\Latent_fingerprint\SFP_latent_fingerprint_enh\segmentation\Latent_fingerprint_segmentation_KSIP2026\data\sd302h_original_500ppi\00002302_2B_X_L01_BP_S04_500PPI_8BPC_1CH_LP05-1_1.png"
-    img_path = r"C:\work\image_processing\latent_fingerprint\automatic_segment\data\00002313_1C_L_L02_BP_S10_500PPI_8BPC_1CH_LP03-1_1.png"
+    # img_path = r"C:\work\image_processing\latent_fingerprint\automatic_segment\data\00002313_1C_L_L02_BP_S10_500PPI_8BPC_1CH_LP03-1_1.png"
     # mask_path = r"D:\work\image_processing\Latent_fingerprint\SFP_latent_fingerprint_enh\latent_fingerprint_enhancement-master\data\masks_machine\rtp2013_11_1_T_2.png"
     img = cv.imread(img_path, 0)
     # mask = cv.imread(mask_path, 0)
@@ -351,9 +351,36 @@ if __name__ == "__main__":
     magnitude = BBF.getMagnitude()
     # kurtosis = BBF.apply_func_map(magnitude, log_transform)
     # BBF.setMagnitude(kurtosis)
-    BBF.istft()
-    output = BBF.get_output_img()
-    # output = normalize_range(output, (np.min(output), np.max(output)), (0, 255))
 
-    plot_all([img, output], title_list=["Before", "after"])
-    plot_all([img, img-output], title_list=["Original", "Delta"])
+    ##---- Test ISTFT
+    # BBF.istft()
+    # output = BBF.get_output_img()
+    # # output = normalize_range(output, (np.min(output), np.max(output)), (0, 255))
+    # plot_all([img, output], title_list=["Before", "after"])
+    # plot_all([img, img-output], title_list=["Original", "Delta"])
+    # ---- ---- ----
+    
+    from grouping_framework import map_clustering_watershed, map_clustering_n_iterative, BlockGroup
+    from crossing_field import ban_bandpass_gaussian
+    import plotly.graph_objects as go
+
+    # Gaussian Bandpass 3->16 with gaussian 3
+    ban_magnitude = BBF.apply_func_map(magnitude, ban_bandpass_gaussian, 3, 16, 3)
+    r_idx, c_idx = 10, 12
+    row_map_list, col_map_list = BBF.row_map_block_index_list, BBF.col_map_block_index_list
+    block = ban_magnitude[row_map_list[r_idx]:row_map_list[r_idx]+64, col_map_list[c_idx]:col_map_list[c_idx]+64]
+    # Cluster
+    bg_list = map_clustering_watershed(block, 4)
+    # bg_list = map_clustering_n_iterative(block, 0.8)
+    print(f"The number of cluster is : {len(bg_list)}")
+    klst = [bg_list[i].generate_activation_map(block.shape[0], block.shape[1]) for i in range(len(bg_list))]
+    # klst.insert(0, block)
+    # plot_all(block, cmap='hot')
+    fig1 = go.Figure(data=[go.Surface(z=block, colorscale='Jet')])
+    fig1.update_layout(
+        title='1. 3D FFT Magnitude Spectrum',
+        scene=dict(xaxis_title='Freq X', yaxis_title='Freq Y', zaxis_title='Magnitude'),
+    )
+    fig1.show()
+    for i in range(len(klst)):
+        plot_all([block, klst[i]], cmap='hot', title_list=["Original", f"cluster {i}"])
