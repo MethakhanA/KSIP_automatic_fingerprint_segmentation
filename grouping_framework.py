@@ -16,7 +16,15 @@ from utils.check_angle_rad import check_angle_rad
 from utils.plot_all import plot_all
 # ----
 class BlockGroup:
-    def __init__(self, row_index_list, col_index_list, block_attribute_list=None):
+    def __init__(self, row_index_list=None, col_index_list=None, block_attribute_list=None, fromActiMap=False, activation_map=None):
+        if fromActiMap:
+            row_index_list = []
+            col_index_list = []
+            for i in range(activation_map.shape[0]):
+                for j in range(activation_map.shape[1]):
+                    if activation_map[i][j]==1:
+                        row_index_list.append(i)
+                        col_index_list.append(j)
         self.rw_idx_lst = row_index_list
         self.cl_idx_lst = col_index_list
         self.blk_attrib_lst = block_attribute_list
@@ -279,14 +287,15 @@ def map_clustering_tol(vector_map, tol=0.8, min_samp=2):
     masks = {c_id: (labels == c_id) for c_id in cluster_ids}
     return masks
     # pass
-def map_clustering_threshold(vector_map, parts=4, max_cluster=10):
-    max_val, min_val = np.max(vector_map), np.min(vector_map)
+def map_clustering_threshold(vector_map, parts=4):
+    # ---- Don't Forget to add max cluster
     bins = np.linspace(0.0, 1.0, parts + 1) # into n parts
     lower = bins[:-1, None, None]
     upper = bins[1:, None, None]
     masks = (vector_map >= lower) & (vector_map < upper)
-    return masks
-    
+    return [BlockGroup(fromActiMap=True, activation_map=item) for item in masks]
+def map_clustering_kernel(vector_map, kernel=None):
+    return
 if __name__ == "__main__":
     from utils.freqfilter import FreqFilter
     from utils.plot_all import plot_all

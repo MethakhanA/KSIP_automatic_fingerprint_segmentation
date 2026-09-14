@@ -137,7 +137,7 @@ def find_orientation_crossings(ori_array, d=5.0, dist_tol=1.5, cluster_tol=3.0, 
         
         contributors_mask = (perp_dists <= dist_tol) & (eucl_dists >= d)
         
-        if np.sum(contributors_mask) >= 3:
+        if np.sum(contributors_mask) >= 2:
             contrib_indices = np.where(contributors_mask)[0]
             crossing_tuple = (float(cy), float(cx))
             blocks = tuple(sorted([(int(ys[idx]), int(xs[idx])) for idx in contrib_indices]))
@@ -168,12 +168,13 @@ def visualize_crossings(ori_array, crossings, extension_length=8.0, background_i
     ax.set_xlim(-5, W + 5)
     ax.set_ylim(-5, H + 5)
     
+    # Always invert the y-axis so row 0 (top of image/array) is at the top of the plot
+    ax.invert_yaxis()
+    
     # Render background image if provided, perfectly aligned with the grid
     if background_image is not None:
         ax.imshow(background_image, cmap=cmap, origin='upper', 
                   extent=[-0.5, W-0.5, H-0.5, -0.5], alpha=0.75)
-    else:
-        ax.invert_yaxis()
     
     # 1. Setup explicit pixel grid
     ax.set_xticks(np.arange(-0.5, W, 1), minor=True)
@@ -226,9 +227,9 @@ def exclude_boundary(img):
 if __name__ == "__main__":
     # from crossingfield_test import find_orientation_crossings, visualize_crossings
     from grouping_framework import BlockGroup
-    out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
+    # out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
     # out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data_TV"
-    # out_path = r"C:\work\image_processing\latent_fingerprint\automatic_segment\data"
+    out_path = r"C:\work\image_processing\latent_fingerprint\automatic_segment\data"
     # ---- Define Params ----
     o_block_size = 64
     no_block_size = 16
