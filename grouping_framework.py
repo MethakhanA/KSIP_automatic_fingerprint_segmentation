@@ -281,12 +281,13 @@ def map_clustering_watershed(vector_map, connectivity=8, merge_threshold=0.5):
     return result
 # Example
 def map_clustering_tol(vector_map, tol=0.8, min_samp=2):
+    # ---- Note: Very Slow
     dbscan = DBSCAN(eps=tol, min_samples=min_samp)
-    labels = dbscan.fit_predict(dbscan)
+    labels = dbscan.fit_predict(vector_map)
     cluster_ids = [label for label in np.unique(labels) if label != -1]
-    masks = {c_id: (labels == c_id) for c_id in cluster_ids}
-    return masks
-    # pass
+    # masks = [(labels==c_id) for c_id in cluster_ids]
+    # [BlockGroup(fromActiMap=True, activation_map=)]
+    return [BlockGroup(fromActiMap=True, activation_map=(labels==c_id)) for c_id in cluster_ids]
 def map_clustering_threshold(vector_map, parts=4):
     # ---- Don't Forget to add max cluster
     bins = np.linspace(0.0, 1.0, parts + 1) # into n parts
@@ -294,8 +295,12 @@ def map_clustering_threshold(vector_map, parts=4):
     upper = bins[1:, None, None]
     masks = (vector_map >= lower) & (vector_map < upper)
     return [BlockGroup(fromActiMap=True, activation_map=item) for item in masks]
+def map_clustering_peak_threshold(vector_map, peak_pos, thresh=0.8):
+    # ---- 
+    for pos in peak_pos:
+        pass
 def map_clustering_kernel(vector_map, kernel=None):
-    return
+    pass
 if __name__ == "__main__":
     from utils.freqfilter import FreqFilter
     from utils.plot_all import plot_all
@@ -308,8 +313,9 @@ if __name__ == "__main__":
     BPF = cv.GaussianBlur(BPF, (3, 3), sigmaX=0)
     # plot_all(BPF)
     # dat_list = map_clustering_watershed(BPF)
-    mask = map_clustering_threshold(BPF)
-    plot_all([mask[i] for i in range(len(mask))])
+    # mask = map_clustering_threshold(BPF)
+    mask = map_clustering_tol(BPF)
+    # plot_all([mask[i] for i in range(len(mask))])
     # ---- ---- ----
     
     ##---- 

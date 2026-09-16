@@ -360,27 +360,36 @@ if __name__ == "__main__":
     # plot_all([img, img-output], title_list=["Original", "Delta"])
     # ---- ---- ----
     
+    
     from grouping_framework import map_clustering_watershed, map_clustering_n_iterative, BlockGroup
     from crossing_field import ban_bandpass_gaussian
     import plotly.graph_objects as go
 
     # Gaussian Bandpass 3->16 with gaussian 3
     ban_magnitude = BBF.apply_func_map(magnitude, ban_bandpass_gaussian, 3, 16, 3)
-    r_idx, c_idx = 10, 12
+    r_idx, c_idx = 10, 10
     row_map_list, col_map_list = BBF.row_map_block_index_list, BBF.col_map_block_index_list
     block = ban_magnitude[row_map_list[r_idx]:row_map_list[r_idx]+64, col_map_list[c_idx]:col_map_list[c_idx]+64]
-    # Cluster
-    bg_list = map_clustering_watershed(block, 4)
-    # bg_list = map_clustering_n_iterative(block, 0.8)
-    print(f"The number of cluster is : {len(bg_list)}")
-    klst = [bg_list[i].generate_activation_map(block.shape[0], block.shape[1]) for i in range(len(bg_list))]
-    # klst.insert(0, block)
-    # plot_all(block, cmap='hot')
-    fig1 = go.Figure(data=[go.Surface(z=block, colorscale='Jet')])
-    fig1.update_layout(
-        title='1. 3D FFT Magnitude Spectrum',
-        scene=dict(xaxis_title='Freq X', yaxis_title='Freq Y', zaxis_title='Magnitude'),
-    )
-    fig1.show()
-    for i in range(len(klst)):
-        plot_all([block, klst[i]], cmap='hot', title_list=["Original", f"cluster {i}"])
+    
+    from blockattribute import find_Attribute_multi
+    from orientation_estimation import local_multipeak
+    # ---- Find 5 peak
+    peak_pos = local_multipeak(block, radius_ban=3, max_peak_count=10, mean_radius_ban=None)
+    
+    
+    # # ---- Watershed Clustering
+    # bg_list = map_clustering_watershed(block, 4)
+    # # bg_list = map_clustering_n_iterative(block, 0.8)
+    # print(f"The number of cluster is : {len(bg_list)}")
+    # klst = [bg_list[i].generate_activation_map(block.shape[0], block.shape[1]) for i in range(len(bg_list))]
+    # # klst.insert(0, block)
+    # # plot_all(block, cmap='hot')
+    # fig1 = go.Figure(data=[go.Surface(z=block, colorscale='Jet')])
+    # fig1.update_layout(
+    #     title='1. 3D FFT Magnitude Spectrum',
+    #     scene=dict(xaxis_title='Freq X', yaxis_title='Freq Y', zaxis_title='Magnitude'),
+    # )
+    # fig1.show()
+    # for i in range(len(klst)):
+    #     plot_all([block, klst[i]], cmap='hot', title_list=["Original", f"cluster {i}"])
+    #     # ---- ---- ----

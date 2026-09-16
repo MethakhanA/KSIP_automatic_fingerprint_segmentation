@@ -228,8 +228,8 @@ if __name__ == "__main__":
     # from crossingfield_test import find_orientation_crossings, visualize_crossings
     from grouping_framework import BlockGroup
     # out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
-    # out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data_TV"
-    out_path = r"C:\work\image_processing\latent_fingerprint\automatic_segment\data"
+    out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data_TV"
+    # out_path = r"C:\work\image_processing\latent_fingerprint\automatic_segment\data"
     # ---- Define Params ----
     o_block_size = 64
     no_block_size = 16
@@ -269,11 +269,10 @@ if __name__ == "__main__":
         # # ---- ---- ----
         
         # /// C2: ---- Create Activation map from localmultipeak and banningpeak
-        max_pos_list = local_multipeak(ks_map, mean_radius_ban=None)
+        max_pos_list = local_multipeak(ks_map, mean_radius_ban=None, radius_ban=2, max_peak_count=10)
         # max_pos_list = banning_peak(ks_map, mean_radius_ban=None)
         row_mp_list, col_mp_list = [item[0] for item in max_pos_list], [item[1] for item in max_pos_list]
         mp_grp = BlockGroup(row_mp_list, col_mp_list)
-        activation_map = mp_grp.generate_activation_map(ks_map.shape[0], ks_map.shape[1])
         # ---- ---- ----
         
         # ---- Create Activation Map
@@ -283,7 +282,7 @@ if __name__ == "__main__":
 
         # ---- Create Attribute map ----
         orientation_map = np.empty((len(row_map_index), len(col_map_index)), dtype=np.ndarray)
-        orientation_map = BBF.apply_func_map(magnitude, find_Attribute_multi, 10, False, output_is_img=False, output_vector=orientation_map)
+        orientation_map = BBF.apply_func_map(magnitude, find_Attribute_multi, 20, False, output_is_img=False, output_vector=orientation_map)
         # ---- ---- ----
         
         # ---- Get orientation map from Attribute map ----
