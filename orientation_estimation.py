@@ -66,20 +66,20 @@ def ban_bandpass(block_img, radius1, radius2):
     return output
 
 
-if __name__ == "__main__":
-    path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
-    for file in glob(os.path.join(path, '*')):
-        img = cv.imread(file, 0)
-        o_block_size = 64
-        no_block_size = 32
-        BBF = BlockBaseFrameWork(img, overlap_block_size=o_block_size, nonoverlap_block_size=no_block_size, zeromean=True, window_func='Gaussian', blur_edge=True)
+# if __name__ == "__main__":
+#     path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
+#     for file in glob(os.path.join(path, '*')):
+#         img = cv.imread(file, 0)
+#         o_block_size = 64
+#         no_block_size = 32
+#         BBF = BlockBaseFrameWork(img, overlap_block_size=o_block_size, nonoverlap_block_size=no_block_size, zeromean=True, window_func='Gaussian', blur_edge=True)
         
-        row_map_index_list, col_map_index_list = BBF.row_map_block_index_list, BBF.col_map_block_index_list
+#         row_map_index_list, col_map_index_list = BBF.row_map_block_index_list, BBF.col_map_block_index_list
         
-        BBF.stft()
-        magnitude = BBF.getMagnitude()
-        img = BBF.get_img()
-        plot_all(img)
+#         BBF.stft()
+#         magnitude = BBF.getMagnitude()
+#         img = BBF.get_img()
+#         plot_all(img)
         # i = 9
         # j = 7
         # block_img = magnitude[row_map_index_list[i]:row_map_index_list[i]+o_block_size, col_map_index_list[j]:col_map_index_list[j]+o_block_size]

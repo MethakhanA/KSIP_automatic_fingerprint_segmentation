@@ -338,58 +338,111 @@ class BlockBaseFrameWork:
     def setMagnitude(self, freq_map):
         self.__freq_map_img = freq_map
 
-
 if __name__ == "__main__":
+    from orientation_estimation import local_multipeak
+    from grouping_framework import map_clustering_peak_threshold
+    def test_inv(block_img, start, stop):
+        peak_pos = local_multipeak(block_img, radius_ban=2, max_peak_count=np.inf)
+        if peak_pos is None:
+            return np.zeros_like(block_img)
+        cluster = map_clustering_peak_threshold(block_img, peak_pos, 0.7)
+        clst_map = np.zeros_like(cluster[0])
+        for i in range(start, stop):
+            clst_map+= cluster[i]
+        # clst_map = clst_map/4
+        return block_img*clst_map
     from utils.plot_all import plot_all
-    img_path = r"D:\work\image_processing\Latent_fingerprint\SFP_latent_fingerprint_enh\segmentation\Latent_fingerprint_segmentation_KSIP2026\data\sd302h_original_500ppi\00002302_2B_X_L01_BP_S04_500PPI_8BPC_1CH_LP05-1_1.png"
+    # img_path = r"D:\work\image_processing\Latent_fingerprint\SFP_latent_fingerprint_enh\segmentation\Latent_fingerprint_segmentation_KSIP2026\data\sd302h_original_500ppi\00002302_2B_X_L01_BP_S04_500PPI_8BPC_1CH_LP05-1_1.png"
     # img_path = r"C:\work\image_processing\latent_fingerprint\automatic_segment\data\00002313_1C_L_L02_BP_S10_500PPI_8BPC_1CH_LP03-1_1.png"
     # mask_path = r"D:\work\image_processing\Latent_fingerprint\SFP_latent_fingerprint_enh\latent_fingerprint_enhancement-master\data\masks_machine\rtp2013_11_1_T_2.png"
-    img = cv.imread(img_path, 0)
-    # mask = cv.imread(mask_path, 0)
-    BBF = BlockBaseFrameWork(img, overlap_block_size=64, nonoverlap_block_size=16, zeromean=True, window_func="Gaussian")
-    BBF.stft()
-    magnitude = BBF.getMagnitude()
-    # kurtosis = BBF.apply_func_map(magnitude, log_transform)
-    # BBF.setMagnitude(kurtosis)
+    folder_path = r"D:\work\image_processing\Latent_fingerprint\segment\data_TV"
+    folder_path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
+    # img_path = r"D:\work\image_processing\Latent_fingerprint\segment\data\00002310_1C_L_L01_BP_S05_500PPI_8BPC_1CH_LP04-1_1.png"
+    
+    for img_path in glob(os.path.join(folder_path, '*')):
+        img = cv.imread(img_path, 0)
+        # plot_all(img)
+        # mask = cv.imread(mask_path, 0)
+        BBF = BlockBaseFrameWork(img, overlap_block_size=64, nonoverlap_block_size=16, zeromean=True, window_func="Gaussian")
+        BBF.stft()
+        magnitude = BBF.getMagnitude()
+        # kurtosis = BBF.apply_func_map(magnitude, log_transform)
+        # BBF.setMagnitude(kurtosis)
 
-    ##---- Test ISTFT
-    # BBF.istft()
-    # output = BBF.get_output_img()
-    # # output = normalize_range(output, (np.min(output), np.max(output)), (0, 255))
-    # plot_all([img, output], title_list=["Before", "after"])
-    # plot_all([img, img-output], title_list=["Original", "Delta"])
-    # ---- ---- ----
-    
-    
-    from grouping_framework import map_clustering_watershed, map_clustering_n_iterative, BlockGroup
-    from crossing_field import ban_bandpass_gaussian
-    import plotly.graph_objects as go
+        ##---- Test ISTFT
+        # BBF.istft()
+        # output = BBF.get_output_img()
+        # # output = normalize_range(output, (np.min(output), np.max(output)), (0, 255))
+        # plot_all([img, output], title_list=["Before", "after"])
+        # plot_all([img, img-output], title_list=["Original", "Delta"])
+        # ---- ---- ----
+        
+        from grouping_framework import map_clustering_watershed, map_clustering_n_iterative, BlockGroup
+        from crossing_field import ban_bandpass_gaussian
+        import plotly.graph_objects as go
 
-    # Gaussian Bandpass 3->16 with gaussian 3
-    ban_magnitude = BBF.apply_func_map(magnitude, ban_bandpass_gaussian, 3, 16, 3)
-    r_idx, c_idx = 10, 10
-    row_map_list, col_map_list = BBF.row_map_block_index_list, BBF.col_map_block_index_list
-    block = ban_magnitude[row_map_list[r_idx]:row_map_list[r_idx]+64, col_map_list[c_idx]:col_map_list[c_idx]+64]
-    
-    from blockattribute import find_Attribute_multi
-    from orientation_estimation import local_multipeak
-    # ---- Find 5 peak
-    peak_pos = local_multipeak(block, radius_ban=3, max_peak_count=10, mean_radius_ban=None)
-    
-    
-    # # ---- Watershed Clustering
-    # bg_list = map_clustering_watershed(block, 4)
-    # # bg_list = map_clustering_n_iterative(block, 0.8)
-    # print(f"The number of cluster is : {len(bg_list)}")
-    # klst = [bg_list[i].generate_activation_map(block.shape[0], block.shape[1]) for i in range(len(bg_list))]
-    # # klst.insert(0, block)
-    # # plot_all(block, cmap='hot')
-    # fig1 = go.Figure(data=[go.Surface(z=block, colorscale='Jet')])
-    # fig1.update_layout(
-    #     title='1. 3D FFT Magnitude Spectrum',
-    #     scene=dict(xaxis_title='Freq X', yaxis_title='Freq Y', zaxis_title='Magnitude'),
-    # )
-    # fig1.show()
-    # for i in range(len(klst)):
-    #     plot_all([block, klst[i]], cmap='hot', title_list=["Original", f"cluster {i}"])
-    #     # ---- ---- ----
+        start, stop = 2, 4
+        # Gaussian Bandpass 3->16 with gaussian 3
+        ban_magnitude = BBF.apply_func_map(magnitude, ban_bandpass_gaussian, 3, 16, 3)
+        output_magnitude = BBF.apply_func_map(ban_magnitude, test_inv, start, stop)
+        
+        
+        r_idx, c_idx = 10, 10
+        row_map_list, col_map_list = BBF.row_map_block_index_list, BBF.col_map_block_index_list
+        block = ban_magnitude[row_map_list[r_idx]:row_map_list[r_idx]+64, col_map_list[c_idx]:col_map_list[c_idx]+64]
+        
+        # from blockattribute import find_Attribute_multi
+        # from orientation_estimation import local_multipeak
+        # from grouping_framework import map_clustering_peak_threshold
+        # ---- Find 5 peak
+        peak_pos = local_multipeak(block, radius_ban=2, max_peak_count=np.inf)
+        cluster = map_clustering_peak_threshold(block, peak_pos, 0.7)
+        
+        clst_map = np.zeros_like(cluster[0])
+        # ---- Change for cluster position
+        
+        for i in range(start, stop):
+        # for i in range(len(cluster)):
+            clst_map+= cluster[i]
+        plot_all([item for item in cluster])
+        plt.subplot(1, 3, 1)
+        plt.title("Ban Magnitude")
+        plt.imshow(block, cmap='hot')
+        plt.subplot(1 ,3, 2)
+        plt.title("Cluster Map")
+        plt.imshow(clst_map, cmap='gray')
+        plt.subplot(1, 3, 3)
+        plt.title("Cluster Overlay")
+        plt.imshow(block, cmap='hot')
+        plt.imshow(clst_map, alpha=0.5, cmap='gray')
+        plt.show()
+        
+        
+        BBF.setMagnitude(output_magnitude)
+        BBF.istft()
+        output = BBF.get_output_img()
+        plot_all([img, output])
+        # plt.imshow(img, alpha=0.5, cmap='gray')
+        # plt.imshow(output, cmap='gray')
+        # plt.show()
+        
+        
+        
+        
+        
+        # # ---- Watershed Clustering
+        # bg_list = map_clustering_watershed(block, 4)
+        # # bg_list = map_clustering_n_iterative(block, 0.8)
+        # print(f"The number of cluster is : {len(bg_list)}")
+        # klst = [bg_list[i].generate_activation_map(block.shape[0], block.shape[1]) for i in range(len(bg_list))]
+        # # klst.insert(0, block)
+        # # plot_all(block, cmap='hot')
+        # fig1 = go.Figure(data=[go.Surface(z=block, colorscale='Jet')])
+        # fig1.update_layout(
+        #     title='1. 3D FFT Magnitude Spectrum',
+        #     scene=dict(xaxis_title='Freq X', yaxis_title='Freq Y', zaxis_title='Magnitude'),
+        # )
+        # fig1.show()
+        # for i in range(len(klst)):
+        #     plot_all([block, klst[i]], cmap='hot', title_list=["Original", f"cluster {i}"])
+        #     # ---- ---- ----

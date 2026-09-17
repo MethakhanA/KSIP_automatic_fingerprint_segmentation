@@ -20,68 +20,91 @@ class BlockAttribute:
         # ---- Declare Variable
         self.block_img = block_img
         self.row, self.col = block_img.shape
-        self.x_center, self.y_center = self.col//2, self.row//2
+        self.x_center, self.y_center = self.col/2, self.row/2
         # ---- Initiate function
         if peak_pos is None:
             self.find_peak_pos(radius_ban=3)
+        self.filter_double_peak() # --- Check for double peak
+        self.find_direction(is_degree=False) # --- Check for direction
+        self.find_magnitude() # --- Find magnitude
+        self.find_distance() # --- Find Frequency or Distance
+        self.find_direction() # --- Find if there is Harmonic
+        # ----
     def find_peak_pos(self, radius_ban=3, max_peak_count=np.inf):
         # ---- Find peak position from local multipeak. (Better than banning peak)
         peak_pos = local_multipeak(self.block_img, radius_ban, max_peak_count)
         self.peak_pos = peak_pos
         return peak_pos
-    def check_doublepeak(self):
-        # ---- Check and clean double peak
+    def filter_double_peak(self):
+        # ---- Couple Double peak together
         peak_pos = self.peak_pos
         row, col = self.row, self.col
+        couple_peak = {}
         for pos in peak_pos:
             inv_pos = (row-pos[0]-1, col-pos[1]-1)
             if inv_pos in peak_pos:
-                del_row = np.abs(inv_pos[0]-pos[0])
-                del_col = np.abs(inv_pos[1]-pos[1])
-            
+                couple_peak[(pos, inv_pos)] = {}
+        self.couple_peak = couple_peak
+        return couple_peak
     def find_direction(self, is_degree=False):
-        peak_pos = self.peak_pos
-        for pos in peak_pos:
-            
-        x_center, y_center = self.x_center, self.y_center
-        # find angle from 0
-        peak_y, peak_x = self.peak_pos
-        d_y = peak_y-y_center
-        d_x = peak_x-x_center
-        angle = math.atan2(d_y, d_x)
-        if is_degree:
-            # convert to degree if wanted
-            angle = math.degrees(angle)
-        self.angle = angle
-        return angle
+        # ---- Find all direction inside the block
+        couple_peak = self.couple_peak
+        for (pos, inv_pos) in couple_peak:
+            del_row = np.abs(pos[0]-inv_pos[0])
+            del_col = np.abs(pos[1]-inv_pos[1])
+            angle = math.atan2(del_row, del_col)
+            if pos[0]<inv_pos[0]:
+                angle += np.pi/2
+            if is_degree:
+                angle = math.degrees(angle)
+            # couple_peak.append([(pos, inv_pos), angle])
+            couple_peak[(pos, inv_pos)]["angle"] = angle        
+        # ---- Output is an ndarray in the from of
+        # [[[pos, inv_pos], angle], ...]
+        self.couple_peak = couple_peak
+        return couple_peak
 
     def find_magnitude(self):
-        # Unpack Variable
-        peak_y, peak_x = self.peak_pos
-        magnitude = self.block_img[peak_y, peak_x]
-        return magnitude
-        
+        # ---- Pack magnitude into array
+        couple_peak = self.couple_peak
+        block_img = self.block_img
+        for (pos, inv_pos) in couple_peak:
+            couple_peak[(pos, inv_pos)]["magnitude"] = block_img[pos[0], pos[1]]
+        self.couple_peak = couple_peak
+        return couple_peak
+
     def find_distance(self):
-        # find distance from center
+        # ---- find distance from center
         x_center, y_center = self.x_center, self.y_center
-        peak_y, peak_x = self.peak_pos
-        d_y = peak_y-y_center
-        d_x = peak_x-x_center
-        d_r = np.sqrt(d_x**2+d_y**2)
-        self.distance = d_r
-        return d_r
+        couple_peak = self.couple_peak
+        for (pos, inv_pos) in couple_peak:
+            d_y = pos[0]-y_center
+            d_x = pos[1]-x_center
+            d_r = np.sqrt(d_x**2+d_y**2)
+            couple_peak[(pos, inv_pos)]["distance"] = d_r
+        self.couple_peak = couple_peak
+        return couple_peak
 
     def find_harmonic(self):
-        # check if there is anything at double frequency
-        peak_y, peak_x = self.peak_pos
-        row, col = self.row, self.col
-        angle = self.angle
-        h_y, h_x = int(2*peak_y*np.sin(angle)), int(2*peak_x*np.cos(angle))
-        if h_y>=row or h_x>=col:
-            return None
-        return self.block_img[h_y, h_x]
+        # ---- find if there is harmonic
+        row, col = self.row, self.col # --- Unpack Variable
+        couple_peak = self.couple_peak
+        block_img = self.block_img
+        for (pos, inv_pos) in couple_peak:
+            angle = couple_peak[(pos, inv_pos)]["angle"]
+            h_y, h_x = int(2*pos[0]*np.sin(angle)), int(2*pos[1]*np.cos(angle))
+            if h_y>=row or h_x>=col:
+                harmonic = None
+            else:
+                harmonic = block_img[h_y, h_x]
+            couple_peak[(pos, inv_pos)]["harmonic"] = harmonic # --- assign value
+        self.couple_peak = couple_peak
+        return couple_peak
 
-    
+    def getattribute(self):
+        return self.couple_peak
+
+
 
 # def find_Attribute_multi(block_img, peak_count=5, filter_double_peak=True, tol=0.8):
 #     # peak_pos = local_multipeak(block_img, 3, peak_count)

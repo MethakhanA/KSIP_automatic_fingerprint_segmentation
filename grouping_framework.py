@@ -5,10 +5,11 @@ from tqdm import tqdm
 
 # from skimage.feature import peak_local_max
 from sklearn.cluster import DBSCAN
+from scipy.ndimage import label
 
 from blockbase_pipeline import BlockBaseFrameWork
 from  orientation_estimation import local_multipeak, banning_peak
-from blockattribute import find_Attribute_multi
+# from blockattribute import find_Attribute_multi
 
 from utils.concave_hull import concave_hull
 from utils.check_angle_rad import check_angle_rad
@@ -296,9 +297,32 @@ def map_clustering_threshold(vector_map, parts=4):
     masks = (vector_map >= lower) & (vector_map < upper)
     return [BlockGroup(fromActiMap=True, activation_map=item) for item in masks]
 def map_clustering_peak_threshold(vector_map, peak_pos, thresh=0.8):
-    # ---- 
-    for pos in peak_pos:
-        pass
+    # Sort peaks in descending order based on their value in vector_map
+    sorted_peaks = sorted(peak_pos, key=lambda pos: vector_map[tuple(pos)], reverse=True)
+    
+    clusters = []
+    structure = np.ones((3,) * vector_map.ndim)
+    
+    for pos in sorted_peaks:
+        pos_tuple = tuple(pos)
+        peak_val = vector_map[pos_tuple]
+        
+        # Threshold relative to the peak value
+        cutoff = thresh * peak_val
+        binary_mask = vector_map >= cutoff
+        
+        # Extract connected component corresponding to this peak
+        labeled_map, _ = label(binary_mask, structure=structure)
+        target_label = labeled_map[pos_tuple]
+        
+        if target_label == 0:
+            cluster_map = np.zeros_like(vector_map, dtype=np.uint8)
+        else:
+            cluster_map = (labeled_map == target_label).astype(np.uint8)
+            
+        clusters.append(cluster_map)
+        
+    return clusters
 def map_clustering_kernel(vector_map, kernel=None):
     pass
 if __name__ == "__main__":
