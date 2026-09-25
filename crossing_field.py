@@ -214,7 +214,7 @@ def visualize_crossings(ori_array, crossings, extension_length=8.0, background_i
     ax.set_title("Orientation Field Crossings with Background Image")
     ax.set_xlabel("X (Image Width)")
     ax.set_ylabel("Y (Image Height)")
-    ax.legend(loc='upper right', bbox_to_anchor=(1.25, 1))
+    # ax.legend(loc='upper right', bbox_to_anchor=(1.25, 1))
     plt.tight_layout()
     plt.show()
 def exclude_boundary(img):
@@ -228,7 +228,7 @@ if __name__ == "__main__":
     # from crossingfield_test import find_orientation_crossings, visualize_crossings
     from grouping_framework import BlockGroup
     # out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data"
-    out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data_TV"
+    # out_path = r"D:\work\image_processing\Latent_fingerprint\segment\data_TV"
     # out_path = r"C:\work\image_processing\latent_fingerprint\automatic_segment\data"
     # ---- Define Params ----
     o_block_size = 64
@@ -236,69 +236,67 @@ if __name__ == "__main__":
     bp_r = (3, 16)
     gss_f_size = 3
     # ---- ---- ----
-    for file in tqdm(glob(os.path.join(out_path, '*'))):
-        img = cv.imread(file, 0) # This is a Texture TV image.
-        # ---- Run BlockBase PipeLine ----
-        BBF = BlockBaseFrameWork(img, overlap_block_size=o_block_size, nonoverlap_block_size=no_block_size, zeromean=True, window_func='Gaussian', blur_edge=True)
-        row_map_index, col_map_index = BBF.row_map_block_index_list, BBF.col_map_block_index_list
-        pad_img = BBF.get_img()
-        BBF.stft()
-        magnitude = BBF.getMagnitude().astype(np.float32)
-        # plot_all(magnitude[row_map_index[index]:row_map_index[index]+o_block_size, col_map_index[index]:col_map_index[index]+o_block_size], cmap='hot', title_list=["Original Magnitude"])
-        # ---- ---- ----
-        
-        # ---- Apply Gaussian Bandpass ----
-        magnitude = BBF.apply_func_map(magnitude, ban_bandpass_gaussian, bp_r[0], bp_r[1], gss_f_size)
-        # plot_all(magnitude[row_map_index[index]:row_map_index[index]+o_block_size, col_map_index[index]:col_map_index[index]+o_block_size], cmap='hot', title_list=["Gaussian Bandpass Magnitude"])
-        
-        # ---- Create kurtosis map ----
-        ks_map = np.zeros((len(row_map_index), len(col_map_index)))
-        ks_map = BBF.apply_func_map(magnitude, fft_kurtosis, output_is_img=False, output_vector=ks_map)
-        # ---- ---- ----
-        
-        # ---- Crop Kurtosis and picture for better Visualization ----
-        block_pad = np.array(BBF.fp_pad)//no_block_size
-        ks_map = ks_map[block_pad[0]:-block_pad[1], block_pad[2]:-block_pad[3]]
-        pad_img = pad_img[BBF.fp_pad[0]:-BBF.fp_pad[1], BBF.fp_pad[2]:-BBF.fp_pad[3]]
-        # plot_all([pad_img, ks_map], cmap=['gray', 'hot'])
+    # for file in tqdm(glob(os.path.join(out_path, '*'))):
 
-        # # /// C1: ---- Create Activation map from watershed clustering
-        # bg_list = map_clustering_watershed(ks_map)
-        # max_pos_list = [item.max_pos for item in bg_list] # each item is a Block Group
-        # mp_grp = BlockGroup([itm1[0] for itm1 in max_pos_list], [itm2[1] for itm2 in max_pos_list])
-        # # ---- ---- ----
-        
-        # /// C2: ---- Create Activation map from localmultipeak and banningpeak
-        max_pos_list = local_multipeak(ks_map, mean_radius_ban=None, radius_ban=2, max_peak_count=10)
-        # max_pos_list = banning_peak(ks_map, mean_radius_ban=None)
-        row_mp_list, col_mp_list = [item[0] for item in max_pos_list], [item[1] for item in max_pos_list]
-        mp_grp = BlockGroup(row_mp_list, col_mp_list)
-        # ---- ---- ----
-        
-        # ---- Create Activation Map
-        activation_map = mp_grp.generate_activation_map(ks_map.shape[0], ks_map.shape[1])
-        activation_map = exclude_boundary(activation_map)        
-        plot_all([pad_img, ks_map, activation_map], cmap=['gray', 'hot', 'gray'])
 
-        # ---- Create Attribute map ----
-        orientation_map = np.empty((len(row_map_index), len(col_map_index)), dtype=np.ndarray)
-        orientation_map = BBF.apply_func_map(magnitude, find_Attribute_multi, 20, False, output_is_img=False, output_vector=orientation_map)
-        # ---- ---- ----
-        
-        # ---- Get orientation map from Attribute map ----
-        o_map = np.zeros((len(row_map_index), len(col_map_index)))
-        for i in range(len(orientation_map)):
-            for j in range(len(orientation_map[i])):
-                if orientation_map[i, j] is None:
-                    o_map[i, j] = None
-                else:
-                    # print(orientation_map[i, j][0][0])
-                    o_map[i, j] = orientation_map[i, j][0][0]
-        o_map = o_map[block_pad[0]:-block_pad[1], block_pad[2]:-block_pad[3]]
-        # print(o_map.shape, activation_map.shape)
-        # ---- ---- ----
 
-        # ---- Find Crossing Field ----
-        result = find_orientation_crossings(o_map, activation_map=activation_map)
-        visualize_crossings(o_map, result, background_image=pad_img, cmap='gray')
-        # ---- ---- ----
+    file = r"C:\work\image_processing\latent_fingerprint\automatic_segment\data\data_tv\Good_Quality.png"
+    # file = r"C:\work\image_processing\latent_fingerprint\automatic_segment\data\data_b\00002310_2A_X_L01_BP_S05_500PPI_8BPC_1CH_LP01-1_1.png"
+    img = cv.imread(file, 0) # This is a Texture TV image.
+    # ---- Run BlockBase PipeLine ----
+    BBF = BlockBaseFrameWork(img, overlap_block_size=o_block_size, nonoverlap_block_size=no_block_size, zeromean=True, window_func='Gaussian', blur_edge=True)
+    row_map_index, col_map_index = BBF.row_map_block_index_list, BBF.col_map_block_index_list
+    pad_img = BBF.get_img()
+    BBF.stft()
+    magnitude = BBF.getMagnitude().astype(np.float32)
+    # plot_all(magnitude[row_map_index[index]:row_map_index[index]+o_block_size, col_map_index[index]:col_map_index[index]+o_block_size], cmap='hot', title_list=["Original Magnitude"])
+    # ---- ---- ----
+    
+    # ---- Apply Gaussian Bandpass ----
+    magnitude = BBF.apply_func_map(magnitude, ban_bandpass_gaussian, bp_r[0], bp_r[1], gss_f_size)
+    # plot_all(magnitude[row_map_index[index]:row_map_index[index]+o_block_size, col_map_index[index]:col_map_index[index]+o_block_size], cmap='hot', title_list=["Gaussian Bandpass Magnitude"])
+    
+    # ---- Create kurtosis map ----
+    ks_map = np.zeros((len(row_map_index), len(col_map_index)))
+    ks_map = BBF.apply_func_map(magnitude, fft_kurtosis, output_is_img=False, output_vector=ks_map)
+    # ---- ---- ----
+    
+    # ---- Crop Kurtosis and picture for better Visualization ----
+    block_pad = np.array(BBF.fp_pad)//no_block_size
+    ks_map = ks_map[block_pad[0]:-block_pad[1], block_pad[2]:-block_pad[3]]
+    pad_img = pad_img[BBF.fp_pad[0]:-BBF.fp_pad[1], BBF.fp_pad[2]:-BBF.fp_pad[3]]
+    # plot_all([pad_img, ks_map], cmap=['gray', 'hot'])
+
+    # # /// C1: ---- Create Activation map from watershed clustering
+    # bg_list = map_clustering_watershed(ks_map)
+    # max_pos_list = [item.max_pos for item in bg_list] # each item is a Block Group
+    # mp_grp = BlockGroup([itm1[0] for itm1 in max_pos_list], [itm2[1] for itm2 in max_pos_list])
+    # # ---- ---- ----
+    
+    # /// C2: ---- Create Activation map from localmultipeak and banningpeak
+    max_pos_list = local_multipeak(ks_map, mean_radius_ban=None, radius_ban=2, max_peak_count=10)
+    # max_pos_list = banning_peak(ks_map, mean_radius_ban=None)
+    row_mp_list, col_mp_list = [item[0] for item in max_pos_list], [item[1] for item in max_pos_list]
+    mp_grp = BlockGroup(row_mp_list, col_mp_list)
+    # ---- ---- ----
+    
+    # ---- Create Activation Map
+    activation_map = mp_grp.generate_activation_map(ks_map.shape[0], ks_map.shape[1])
+    activation_map = exclude_boundary(activation_map)        
+    plot_all([pad_img, ks_map, activation_map], cmap=['gray', 'hot', 'gray'])
+
+    # ---- Create Attribute map ----
+    from blockattribute import find_orientation
+    orientation_map = np.empty((len(row_map_index), len(col_map_index)), dtype=np.ndarray)
+    orientation_map = BBF.apply_func_map(magnitude, find_orientation, output_is_img=False, output_vector=orientation_map)
+    # ---- ---- ----
+    
+   
+    o_map = orientation_map[block_pad[0]:-block_pad[1], block_pad[2]:-block_pad[3]]
+    # print(o_map.shape, activation_map.shape)
+    # ---- ---- ----
+
+    # ---- Find Crossing Field ----
+    result = find_orientation_crossings(o_map, activation_map=activation_map)
+    visualize_crossings(o_map, result, background_image=pad_img, cmap='gray')
+    # ---- ---- ----

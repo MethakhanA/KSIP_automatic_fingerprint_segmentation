@@ -41,9 +41,14 @@ def banning_peak(block_img, radius_ban=3, max_peak_count=5, mean_radius_ban=(3, 
 def local_multipeak(block_img, radius_ban=3, max_peak_count=5, mean_radius_ban=(3, 16)):
     if mean_radius_ban is not None:
         block_img = ban_bandpass(block_img, mean_radius_ban[0], mean_radius_ban[1])
-    peak_pos = peak_local_max(block_img, radius_ban, num_peaks=max_peak_count, exclude_border=False)
+    peak_pos = peak_local_max(block_img, radius_ban, num_peaks=max_peak_count, exclude_border=True)
     if len(peak_pos)==0:
         return None
+    if len(peak_pos) > 0:
+        # --- Sort Peak
+        peak_vals = block_img[tuple(peak_pos.T)]
+        sorted_indices = np.argsort(peak_vals)[::-1]
+        peak_pos = peak_pos[sorted_indices]
     return peak_pos
 
 def ban_circular(block_img, centerx, centery, radius_ban, grid=None):

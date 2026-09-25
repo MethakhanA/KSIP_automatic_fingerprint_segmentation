@@ -26,9 +26,9 @@ class BlockAttribute:
             self.find_peak_pos(radius_ban=3)
         self.filter_double_peak() # --- Check for double peak
         self.find_direction(is_degree=False) # --- Check for direction
-        self.find_magnitude() # --- Find magnitude
-        self.find_distance() # --- Find Frequency or Distance
-        self.find_direction() # --- Find if there is Harmonic
+        # self.find_magnitude() # --- Find magnitude
+        # self.find_distance() # --- Find Frequency or Distance
+        # self.find_direction() # --- Find if there is Harmonic
         # ----
     def find_peak_pos(self, radius_ban=3, max_peak_count=np.inf):
         # ---- Find peak position from local multipeak. (Better than banning peak)
@@ -40,29 +40,35 @@ class BlockAttribute:
         peak_pos = self.peak_pos
         row, col = self.row, self.col
         couple_peak = {}
+        if peak_pos is None:
+            self.couple_peak = None
+            return None
         for pos in peak_pos:
             inv_pos = (row-pos[0]-1, col-pos[1]-1)
             if inv_pos in peak_pos:
-                couple_peak[(pos, inv_pos)] = {}
+                # print((tuple(pos), inv_pos))
+                couple_peak[(tuple(pos), inv_pos)] = {}
         self.couple_peak = couple_peak
         return couple_peak
     def find_direction(self, is_degree=False):
         # ---- Find all direction inside the block
-        couple_peak = self.couple_peak
-        for (pos, inv_pos) in couple_peak:
-            del_row = np.abs(pos[0]-inv_pos[0])
-            del_col = np.abs(pos[1]-inv_pos[1])
+        if self.couple_peak is None:
+            return None
+            
+        for (pos, inv_pos) in self.couple_peak:
+            del_row = pos[0] - inv_pos[0]
+            del_col = pos[1] - inv_pos[1]
             angle = math.atan2(del_row, del_col)
-            if pos[0]<inv_pos[0]:
-                angle += np.pi/2
+            
+            # if pos[0] < inv_pos[0]:
+            #     angle += np.pi / 2
+                
             if is_degree:
                 angle = math.degrees(angle)
-            # couple_peak.append([(pos, inv_pos), angle])
-            couple_peak[(pos, inv_pos)]["angle"] = angle        
-        # ---- Output is an ndarray in the from of
-        # [[[pos, inv_pos], angle], ...]
-        self.couple_peak = couple_peak
-        return couple_peak
+                
+            self.couple_peak[(pos, inv_pos)]["angle"] = angle        
+            
+        return self.couple_peak
 
     def find_magnitude(self):
         # ---- Pack magnitude into array
@@ -103,7 +109,14 @@ class BlockAttribute:
 
     def getattribute(self):
         return self.couple_peak
-
+    
+def find_orientation(block_img):
+    BA = BlockAttribute(block_img)
+    couple_peak = BA.getattribute()
+    if couple_peak is None or len(couple_peak)==0:
+        # print(couple_peak)
+        return None
+    return couple_peak[list(couple_peak)[0]]["angle"]
 
 
 # def find_Attribute_multi(block_img, peak_count=5, filter_double_peak=True, tol=0.8):
