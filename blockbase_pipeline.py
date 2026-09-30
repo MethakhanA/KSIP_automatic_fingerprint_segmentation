@@ -262,6 +262,7 @@ class BlockBaseFrameWork:
         # Incase you don't want the output to be picture, but whatever vector you so desire
         if output_is_img:
             output_img = np.zeros((o_blocksize * rows, o_blocksize * cols), np.float32)
+            # output_img = np.zeros_like(map_img)
         else:
             output_img = output_vector
         
@@ -288,6 +289,7 @@ class BlockBaseFrameWork:
             o_start_map_row = row_output_block_index_list[row_index]
             o_stop_map_row = o_start_map_row+opt_it_size
             for col_index in range(cols):
+                # try:
                 if activation_map[row_index][col_index]==True:
                     # Map index
                     start_map_col = col_block_index_list[col_index]
@@ -303,6 +305,8 @@ class BlockBaseFrameWork:
                         # Note that instead of allocating np.zeroes. Use the np.empty instead so you can Shove whatever the fuck inside the position.
                         output = func(patch, *args)
                         output_img[o_start_map_row, o_start_map_col] = output
+                # except:
+                #     pass
         return output_img    
         
     def get_img(self):

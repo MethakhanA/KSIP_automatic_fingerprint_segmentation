@@ -30,7 +30,10 @@ class BlockGroup:
         self.cl_idx_lst = col_index_list
         self.blk_attrib_lst = block_attribute_list
         self.max_pos = None
-        self.__gen_id()
+        if not row_index_list is None:
+            self.__gen_id()
+        else:
+            self.group_id = {}
     def __gen_id(self):
         group_id = {}
         blk_attrib_lst = self.blk_attrib_lst
@@ -72,7 +75,9 @@ class BlockGroup:
             self.add_member(max_pos[0], max_pos[1])
             return True
         else:
-            return False            
+            return False
+    def set_center_pos(self, center_pos:tuple):
+        self.center_pos = center_pos         
 
 def map_clustering_n_iterative(vector_map, falloff_threshold=0.9, kernel=None, connectivity=8, custom_peak_pos=None):
     "Iterative n-connectivity kernel block clustering"
@@ -338,7 +343,8 @@ if __name__ == "__main__":
     # plot_all(BPF)
     # dat_list = map_clustering_watershed(BPF)
     # mask = map_clustering_threshold(BPF)
-    mask = map_clustering_tol(BPF)
+    # mask = map_clustering_peak_threshold(BPF, )
+    # print(mask)
     # plot_all([mask[i] for i in range(len(mask))])
     # ---- ---- ----
     
