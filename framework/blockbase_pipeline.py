@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt
 # Local Lib
 # from methlib.general import plot_all, normalize_range
 # from methlib.intensity_transform import log_transform
-from utils.fourier import Fourier2D
-from utils.blur_edge import blurEdge
+from framework.utils.fourier import Fourier2D
+from framework.utils.blur_edge import blurEdge
 
 class BlockBaseFrameWork:
     def __init__(self, img=None, overlap_block_size:int=64, nonoverlap_block_size:int=32, zeromean:bool=False, window_func=None, blur_edge=False, blur_size=21, erode_size=21):

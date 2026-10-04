@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 
 from skimage.feature import peak_local_max
 
-from blockbase_pipeline import BlockBaseFrameWork
-from utils.plot_all import plot_all
-from utils.freqfilter import FreqFilter
+from framework.blockbase_pipeline import BlockBaseFrameWork
+from framework.utils.plot_all import plot_all
+from framework.utils.freqfilter import FreqFilter
 
 # Select 5 Top Peak
 # vector -> Magnitude, Orientation (0-2pi), frequency (distance), harmonic (Peak at 2*frequency)
@@ -49,7 +49,10 @@ def local_multipeak(block_img, radius_ban=3, max_peak_count=5, mean_radius_ban=(
         peak_vals = block_img[tuple(peak_pos.T)]
         sorted_indices = np.argsort(peak_vals)[::-1]
         peak_pos = peak_pos[sorted_indices]
+        peak_pos = [tuple(p) for p in peak_pos]
     return peak_pos
+
+# Add A third 
 
 def ban_circular(block_img, centerx, centery, radius_ban, grid=None):
     row, col = block_img.shape

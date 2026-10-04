@@ -6,15 +6,15 @@ import cv2 as cv
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from utils.TV import TV_preprocessing
-from utils.plot_all import plot_all
-from utils.freqfilter import FreqFilter
-from utils.kurtosis import fft_kurtosis
+from framework.utils.TV import TV_preprocessing
+from framework.utils.plot_all import plot_all
+from framework.utils.freqfilter import FreqFilter
+from framework.utils.kurtosis import fft_kurtosis
 
-from blockbase_pipeline import BlockBaseFrameWork
-from orientation_estimation import banning_peak, local_multipeak
+from framework.blockbase_pipeline import BlockBaseFrameWork
+from framework.orientation_estimation import banning_peak, local_multipeak
 # from blockattribute import find_Attribute_multi
-from grouping_framework import map_clustering_watershed
+from framework.grouping_framework import map_clustering_watershed
 '''
 Crossing point field framework
 - from BBF generate STFT map
@@ -36,7 +36,9 @@ def ban_bandpass_gaussian(block_img, radius1, radius2, filtersize=3):
 
 # write a crossing field framework
 # from watershed_clustering_test import cluster_pixels
-def find_orientation_crossings(ori_array, d=5.0, dist_tol=1.5, cluster_tol=3.0, activation_map=None):
+def find_orientation_crossings(ori_array, d=5.0, dist_tol=1.5, cluster_tol=3.0, 
+                               activation_map=None, min_lines=2, max_crossings=None,
+                               inside_image_only=False):
     H = len(ori_array)
     W = len(ori_array[0]) if H > 0 else 0
     
@@ -88,8 +90,12 @@ def find_orientation_crossings(ori_array, d=5.0, dist_tol=1.5, cluster_tol=3.0, 
         cross_x = (C_i * B_j_v - C_j_v * B_i) / Det_v
         cross_y = (A_i * C_j_v - A_j_v * C_i) / Det_v
         
-        in_bounds = (cross_x >= -W) & (cross_x <= 2*W) & \
-                    (cross_y >= -H) & (cross_y <= 2*H)
+        if inside_image_only:
+            in_bounds = (cross_x >= 0) & (cross_x <= W - 1) & \
+                        (cross_y >= 0) & (cross_y <= H - 1)
+        else:
+            in_bounds = (cross_x >= -W) & (cross_x <= 2*W) & \
+                        (cross_y >= -H) & (cross_y <= 2*H)
                     
         dist_from_i = np.hypot(cross_x - x_i, cross_y - y_i)
         dist_from_j = np.hypot(cross_x - xs_j_v, cross_y - ys_j_v)
@@ -128,16 +134,21 @@ def find_orientation_crossings(ori_array, d=5.0, dist_tol=1.5, cluster_tol=3.0, 
             clusters.append([pt_arr])
             cluster_centers.append(pt_arr)
 
-    # 4. Find valid clusters with >= 3 contributors
+    # 4. Find valid clusters with >= min_lines contributors
+    min_lines = max(2, int(min_lines))
     candidate_output = []
     for center in cluster_centers:
         cy, cx = center
+        
+        if inside_image_only and not (0 <= cx <= W - 1 and 0 <= cy <= H - 1):
+            continue
+
         perp_dists = np.abs(A * cx + B * cy - C)
         eucl_dists = np.hypot(cx - xs, cy - ys)
         
         contributors_mask = (perp_dists <= dist_tol) & (eucl_dists >= d)
         
-        if np.sum(contributors_mask) >= 2:
+        if np.sum(contributors_mask) >= min_lines:
             contrib_indices = np.where(contributors_mask)[0]
             crossing_tuple = (float(cy), float(cx))
             blocks = tuple(sorted([(int(ys[idx]), int(xs[idx])) for idx in contrib_indices]))
@@ -155,66 +166,94 @@ def find_orientation_crossings(ori_array, d=5.0, dist_tol=1.5, cluster_tol=3.0, 
     for blocks, points in unique_results.items():
         avg_y = sum(p[0] for p in points) / len(points)
         avg_x = sum(p[1] for p in points) / len(points)
+        
+        if inside_image_only and not (0 <= avg_x <= W - 1 and 0 <= avg_y <= H - 1):
+            continue
+            
         final_output.append( ((avg_y, avg_x),) + blocks )
+
+    # 6. Sort by number of intersecting lines (descending) and cap output
+    final_output.sort(key=lambda item: len(item) - 1, reverse=True)
+
+    if max_crossings is not None and max_crossings > 0:
+        final_output = final_output[:max_crossings]
             
     return final_output
 
 
-def visualize_crossings(ori_array, crossings, extension_length=8.0, background_image=None, cmap='gray'):
+def visualize_crossings(ori_array, crossings, extension_length=8.0, background_image=None, cmap='gray', block_size=16, offset=24):
     H = len(ori_array)
     W = len(ori_array[0]) if H > 0 else 0
     
-    fig, ax = plt.subplots(figsize=(10, 10))
-    ax.set_xlim(-5, W + 5)
-    ax.set_ylim(-5, H + 5)
+    # Calculate exact pixel dimensions for the block grid
+    pix_W = W * block_size
+    pix_H = H * block_size
     
-    # Always invert the y-axis so row 0 (top of image/array) is at the top of the plot
+    fig, ax = plt.subplots(figsize=(10, 10))
+    # Adjust plot limits to account for the offset
+    ax.set_xlim(-block_size + offset, pix_W + block_size + offset)
+    ax.set_ylim(-block_size + offset, pix_H + block_size + offset)
     ax.invert_yaxis()
     
-    # Render background image if provided, perfectly aligned with the grid
+    # 1. Render background image in its native pixel space
     if background_image is not None:
+        img_h, img_w = background_image.shape[:2]
         ax.imshow(background_image, cmap=cmap, origin='upper', 
-                  extent=[-0.5, W-0.5, H-0.5, -0.5], alpha=0.75)
+                  extent=[0, img_w, img_h, 0], alpha=0.75)
     
-    # 1. Setup explicit pixel grid
-    ax.set_xticks(np.arange(-0.5, W, 1), minor=True)
-    ax.set_yticks(np.arange(-0.5, H, 1), minor=True)
-    ax.grid(which='minor', color='lightgray', linestyle='-', linewidth=0.5, alpha=0.5)
-    ax.tick_params(which='minor', length=0)
+    # 2. Pixel Grid lines shifted by the offset (e.g., starts at 24, 40, 56...)
+    ax.set_xticks(np.arange(offset, pix_W + offset + 1, block_size))
+    ax.set_yticks(np.arange(offset, pix_H + offset + 1, block_size))
+    ax.grid(which='major', color='lightgray', linestyle='-', linewidth=0.5, alpha=0.7)
     
-    # 2. Plot Orientation Field as headless lines
+    # 3. Orientation Field drawn at pixel block centers
     for y in range(H):
         for x in range(W):
             theta = ori_array[y][x]
             if theta is not None:
-                dx = np.cos(theta) * 0.45
-                dy = np.sin(theta) * 0.45
-                ax.plot([x - dx, x + dx], [y - dy, y + dy], color='white' if background_image is not None else 'dimgray', linewidth=1.5)
+                line_len = (block_size / 2) - 1 
+                dx = np.cos(theta) * line_len
+                dy = np.sin(theta) * line_len
+                
+                # Apply the offset to the centers
+                cx_pixel = offset + x * block_size + (block_size / 2)
+                cy_pixel = offset + y * block_size + (block_size / 2)
+                
+                ax.plot([cx_pixel - dx, cx_pixel + dx], 
+                        [cy_pixel - dy, cy_pixel + dy], 
+                        color='white' if background_image is not None else 'dimgray', 
+                        linewidth=1.5)
     
-    # 3. Plot Crossings and Extended Lines
+    # 4. Plot Crossings and Extended Lines
     colors = ['#d62728', '#2ca02c', '#1f77b4', '#9467bd', '#ff7f0e']
     for i, crossing_data in enumerate(crossings):
-        cy, cx = crossing_data[0]
+        cy_block, cx_block = crossing_data[0] 
         blocks = crossing_data[1:]
         color = colors[i % len(colors)]
         
-        ax.scatter(cx, cy, color=color, marker='*', s=300, edgecolor='black', zorder=5, 
-                   label=f'Cross {i+1} ({cx:.1f}, {cy:.1f})')
+        # Apply the offset to crossing points
+        cx_pixel = offset + cx_block * block_size
+        cy_pixel = offset + cy_block * block_size
+        
+        ax.scatter(cx_pixel, cy_pixel, color=color, marker='*', s=300, edgecolor='black', zorder=5)
         
         for (by, bx) in blocks:
-            ax.scatter(bx, by, color=color, marker='s', s=40, edgecolor='black', zorder=4)
+            # Apply offset to contributor block centers
+            bx_center = offset + bx * block_size + (block_size / 2)
+            by_center = offset + by * block_size + (block_size / 2)
             
-            # Extend line past crossing point
-            dist = np.hypot(cx - bx, cy - by)
-            if dist > 0:
-                ex = cx + ((cx - bx) / dist) * extension_length
-                ey = cy + ((cy - by) / dist) * extension_length
-                ax.plot([bx, ex], [by, ey], color=color, linestyle='-', alpha=0.8, linewidth=2.0)
+            ax.scatter(bx_center, by_center, color=color, marker='s', s=40, edgecolor='black', zorder=4)
+            
+            dist_pixel = np.hypot(cx_pixel - bx_center, cy_pixel - by_center)
+            if dist_pixel > 0:
+                ext_pixel = extension_length * block_size
+                ex = cx_pixel + ((cx_pixel - bx_center) / dist_pixel) * ext_pixel
+                ey = cy_pixel + ((cy_pixel - by_center) / dist_pixel) * ext_pixel
+                ax.plot([bx_center, ex], [by_center, ey], color=color, linestyle='-', alpha=0.8, linewidth=2.0)
 
-    ax.set_title("Orientation Field Crossings with Background Image")
-    ax.set_xlabel("X (Image Width)")
-    ax.set_ylabel("Y (Image Height)")
-    # ax.legend(loc='upper right', bbox_to_anchor=(1.25, 1))
+    ax.set_title(f"Orientation Crossings mapped with Offset={offset}")
+    ax.set_xlabel("X (Pixels)")
+    ax.set_ylabel("Y (Pixels)")
     plt.tight_layout()
     plt.show()
 def exclude_boundary(img):

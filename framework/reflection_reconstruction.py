@@ -7,22 +7,22 @@ import cv2 as cv
 
 import matplotlib.pyplot as plt
 
-from blockbase_pipeline import BlockBaseFrameWork
-from grouping_framework import BlockGroup
-from orientation_estimation import ban_bandpass
-from orientation_estimation import banning_peak, local_multipeak
-from crossing_field import ban_bandpass_gaussian, exclude_boundary, visualize_crossings, find_orientation_crossings
+from framework.blockbase_pipeline import BlockBaseFrameWork
+from framework.grouping_framework import BlockGroup
+from framework.orientation_estimation import ban_bandpass
+from framework.orientation_estimation import banning_peak, local_multipeak
+from framework.crossing_field import ban_bandpass_gaussian, exclude_boundary, visualize_crossings, find_orientation_crossings
 
-from blockattribute import find_orientation
+from framework.blockattribute import find_orientation
 
-from grouping_framework import map_clustering_peak_threshold
+from framework.grouping_framework import map_clustering_peak_threshold
 
-from utils.plot_all import plot_all
-from utils.freqfilter import FreqFilter
-from utils.kurtosis import fft_kurtosis
-from utils.plot_all import plot_all
+from framework.utils.plot_all import plot_all
+from framework.utils.freqfilter import FreqFilter
+from framework.utils.kurtosis import fft_kurtosis
+from framework.utils.plot_all import plot_all
 
-from utils.TV import TV_preprocessing
+from framework.utils.TV import TV_preprocessing
 
 def simple_func(block_img):
     return block_img
