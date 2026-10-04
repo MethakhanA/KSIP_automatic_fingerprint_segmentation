@@ -7,10 +7,12 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 
 from skimage.feature import peak_local_max
+from scipy.cluster.hierarchy import linkage, fcluster
+from scipy.ndimage import maximum_filter
 
-from blockbase_pipeline import BlockBaseFrameWork
-from utils.plot_all import plot_all
-from utils.freqfilter import FreqFilter
+from framework.blockbase_pipeline import BlockBaseFrameWork
+from framework.utils.plot_all import plot_all
+from framework.utils.freqfilter import FreqFilter
 
 # Select 5 Top Peak
 # vector -> Magnitude, Orientation (0-2pi), frequency (distance), harmonic (Peak at 2*frequency)
@@ -49,7 +51,55 @@ def local_multipeak(block_img, radius_ban=3, max_peak_count=5, mean_radius_ban=(
         peak_vals = block_img[tuple(peak_pos.T)]
         sorted_indices = np.argsort(peak_vals)[::-1]
         peak_pos = peak_pos[sorted_indices]
+        peak_pos = [tuple(p) for p in peak_pos]
     return peak_pos
+
+# ---- Hierarchical Clustering
+def find_peaks_adaptive_hierarchical(image, max_distance, neighborhood_size=3, noise_floor=None):
+    """
+    Finds peak locations using local maximum candidate detection followed by 
+    hierarchical agglomerative clustering. Works across varied intensity scales.
+
+    Parameters:
+        image (np.ndarray): 2D numpy array.
+        max_distance (float): Spatial distance threshold to merge adjacent local peaks.
+        neighborhood_size (int): Size of the local search window (3x3 default).
+        noise_floor (float or None): Optional minimum absolute value to ignore 
+                                     flat/zero background noise.
+    """
+    # 1. Identify all pixels that are strictly local maxima relative to their neighbors
+    local_max_mask = (image == maximum_filter(image, size=neighborhood_size))
+    
+    # 2. Filter out flat zero/background regions
+    if noise_floor is not None:
+        local_max_mask &= (image > noise_floor)
+    else:
+        # Ignore completely flat areas (where max == min locally)
+        local_max_mask &= (image > image.min())
+
+    rows, cols = np.where(local_max_mask)
+    if len(rows) == 0:
+        return []
+
+    coords = np.column_stack((rows, cols))
+    if len(coords) == 1:
+        return [(int(rows[0]), int(cols[0]))]
+
+    # 3. Group nearby local maxima using hierarchical clustering
+    Z = linkage(coords, method='complete', metric='euclidean')
+    cluster_labels = fcluster(Z, criterion='distance', t=max_distance)
+
+    # 4. Resolve each cluster to its highest local point
+    peaks = []
+    for label in np.unique(cluster_labels):
+        cluster_coords = coords[cluster_labels == label]
+        intensities = image[cluster_coords[:, 0], cluster_coords[:, 1]]
+        
+        # Pick the point with highest intensity in this cluster
+        max_idx = np.argmax(intensities)
+        peaks.append((int(cluster_coords[max_idx, 0]), int(cluster_coords[max_idx, 1])))
+
+    return peaks
 
 def ban_circular(block_img, centerx, centery, radius_ban, grid=None):
     row, col = block_img.shape

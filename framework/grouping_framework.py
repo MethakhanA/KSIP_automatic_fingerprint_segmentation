@@ -7,14 +7,14 @@ from tqdm import tqdm
 from sklearn.cluster import DBSCAN
 from scipy.ndimage import label
 
-from blockbase_pipeline import BlockBaseFrameWork
-from  orientation_estimation import local_multipeak, banning_peak
+from framework.blockbase_pipeline import BlockBaseFrameWork
+from  framework.orientation_estimation import local_multipeak, banning_peak
 # from blockattribute import find_Attribute_multi
 
-from utils.concave_hull import concave_hull
-from utils.check_angle_rad import check_angle_rad
+from framework.utils.concave_hull import concave_hull
+from framework.utils.check_angle_rad import check_angle_rad
 # ---- Visualization Hook ----
-from utils.plot_all import plot_all
+from framework.utils.plot_all import plot_all
 # ----
 class BlockGroup:
     def __init__(self, row_index_list=None, col_index_list=None, block_attribute_list=None, fromActiMap=False, activation_map=None):
